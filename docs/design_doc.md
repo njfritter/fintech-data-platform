@@ -286,3 +286,78 @@ See `docs/oncall_runbook.md` for:
 - Escalation paths
 - Post mortem template
 
+## 8. Build vs Buy Decisions
+
+| Component | Build | Buy | Decision | Reasoning |
+| --------- | ----- | --- | -------- | --------- |
+| Orchestrator | Custom scheduler | Airflow | Buy | Mature, thousands of providers |
+| Data Quality | Custom validators | Great Expectations | Buy | Extensible, open source |
+| Lineage | Custom Solution | OpenLineage | Buy | Already integrated with Airflow, open standard |
+| BI dashboard | Custom Solution | Metabase (OSS) | Buy | Low barrier to onboarding for stakeholders |
+| Feature Store | Feast (OSS) | None | Defer | Not needed for Phase 1 |
+
+## 9. Risks and Mitigations Summary
+
+| Risk | Probability | Impact | Mitigation |
+| ---- | ----------- | ------ | ---------- |
+| Spark "Real Time Mode" Not Meeting SLA | Medium | High | Fall back to micro-batch, keep Flink option available |
+| Vendor lock-in to Delta Lake | Low | Medium | Open format; Iceberg compatibility |
+| Team learning curve for Spark | Medium | Medium | Internal trainings + hiring; leverage dbt for SQL dominant work |
+| Data quality failures during backfills | High | Medium | Validate gates before overwrites; idempotent writes |
+| SOX Audit Fails | Low | Critical | Audit logs on all data access; quarterly compliance reviews (and more as needed) | 
+
+## 10. Future Roadmap (6-12 Months)
+
+| Quarter | Initiative | Success Metric |
+|---------|------------|----------------|
+| Q3 2026 | Online feature serving for real-time fraud | <10ms feature lookup |
+| Q4 2026 | Data mesh / domain-oriented ownership | Each domain owns its silver/gold |
+| Q1 2027 | Reverse ETL to operational systems | <5 min from insight to action |
+| Q2 2027 | Federated query across multiple regions | <1 sec to cross-region join |
+
+## 11. References & Appendix
+
+### 11.1 Related Documents
+
+- **Product Requirements Document:** [`docs/prd.md`](./prd.md)
+
+**TODO: Add below documents**
+- **Data definitions:** [`data_dictionary.md`](./data_dictionary.md)
+- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
+- **Production checklist:** [`production_readiness_checklist.md`](./production_readiness_checklist.md)
+- **Schema Registry/Contracts:** `contracts/schema_registry.py`
+
+### 11.2 External References
+
+- [Delta Lake Documentation](https://docs.delta.io/latest/index.html)
+- [Spark Structured Streaming](https://spark.apache.org/docs/latest/streaming/index.html)
+- [Snowflake vs. Lakehouse: Practical Trade-offs (2025)](https://example.com/snowflake-lakehouse) *(placeholder)*
+
+### 11.3 Glossary
+
+| Term | Definition |
+|------|------------|
+| **Bronze layer** | Raw, immutable data as ingested from sources |
+| **Silver layer** | Cleansed, deduplicated, conformed data |
+| **Gold layer** | Business-facing aggregates and feature tables |
+| **RTM** | Real-Time Mode (Spark 4.1+) |
+| **SCD Type 2** | Slowly Changing Dimension - tracks history via row versioning |
+| **SLO** | Service Level Objective - internal target |
+| **SOX** | Sarbanes-Oxley Act - financial recordkeeping compliance |
+
+## 12. Approval & Sign-Off
+
+Here we will simulate the review + approvals of key stakeholders:
+
+| Role | Name | Date | Signature |
+|------|------|------|-----------|
+| Data Engineering Lead | [TBD] | 2026-05-02 | Pending |
+| Data Science Lead | [TBD] | 2026-05-02 | Pending |
+| Compliance Officer | [TBD] | 2026-05-02 | Pending |
+| Engineering Manager | [TBD] | 2026-05-02 | Pending |
+
+**Document Version History**
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | 2026-05-04 | Data Engineering Team | Created Initial Draft |
