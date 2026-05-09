@@ -156,3 +156,133 @@ If the business needed guaranteed <10ms latency or complex event patterns (like 
 **Risks and Mitigation:**
 - Lacks online serving, so not a full feature store
 - Will revisit this decision if real time serving becomes a priority
+
+## 5. Data Model Design
+
+The data model design that will be leveraged for this architecture is the "medallion" architecture, a data design pattern used to improve data quality and structure as it moves through a data lakehouse. Here is a table representing the pattern at a high level:
+
+| Layer | Purpose | High Level Summary |
+| ----- | ------- | ------------------ |
+| Bronze | Raw, untransformed data (with additional metadata added as needed) | Quick "CDC" (Change Data Capture) of upstream data systems to minimize impact, preserves full data history, can act as long term archie for replaying data |
+| Silver | Refined data that has been cleaned, deduplicated, validated against business rules, and converted into standard formats and schemas | Acts as single source of truth for analytics, enables efficient ad hoc querying, typically has minimal transformations applied to meet Enterprise needs |
+| Gold | Further refined, curated data for specific business needs | Very project specific, typically denormalized into a "star schema", can be retrieved by analysts and ML models quickly |
+
+The Medallion architecture comes with multiple key benefits, including:
+- Clarity: Raw data and analysis ready data are distinguished
+- Scalable: Patterns hold up as data volume grows
+- Data Lineage: Data can be traced from the Bronze to the Gold layer easily
+- Incremental processing: Leverages Change Data Capture for efficient updates
+
+Here are some additional resources on the Medallion architecture:
+- https://www.databricks.com/blog/what-is-medallion-architecture
+- https://weld.app/blog/medallion-layers
+
+### 5.1 "Bronze" Layer (Raw, Immutable Data)
+
+Transactions Table:
+```sql
+-- Partitioning: Event Date
+-- Query Optimization: Z-ordered by user_id
+CREATE TABLE bronze.transactions (
+    event_id STRING,
+    event_timestamp TIMESTAMP,
+    event_type STRING,
+    user_id STRING,
+    amount DECIMAL(10,2),
+    source_file STRING,
+    ingested_at TIMESTAMP 
+)
+USING delta
+PARTITIONED BY (DATE(event_timestamp))
+LOCATION 's3://bronze/transactions';
+```
+
+### 5.2 "Silver" Layer (Cleaned, includes SCD Type 2 Attributes)
+
+User Attributes Table:
+```sql
+CREATE TABLE silver.users_scd2 (
+    user_id STRING,
+    user_name STRING,
+    credit_score INT,
+    credit_limit DECIMAL(10,2),
+    membership_level STRING,
+    is_current BOOLEAN,
+    effective_start_date DATETIME,
+    effective_end_date DATETIME,
+    data_loaded_at TIMESTAMP
+)
+USING delta
+LOCATION 's3://silver/users_scd2';
+```
+
+### 5.3 "Gold" Layer (Curated Business Fact Tables)
+
+Periodic Snapshot User Status Table:
+```sql
+-- Partitioning: Status Date
+CREATE TABLE gold.fact_user_daily_status (
+    user_id STRING,
+    status_date DATE,
+    is_deliquent BOOLEAN,
+    total_outstanding_balance DECIMAL(10,2),
+    last_payment_date DATE,
+    data_loaded_at TIMESTAMP
+)
+USING delta
+PARTITIONED BY (status_date)
+LOCATION 's3://gold/fact_user_daily_status';
+```
+
+## 6. Data Contracts + Schema Evolution
+
+### 6.1 Data Source Contracts
+
+Each data source must define a contract before onboarding:
+
+```yaml
+domain: lending
+dataset_name: loan_decisions
+version: 1.2.0
+owning_team: product_eng_lending
+consumer_teams: [finance, analytics, ds_risk]
+freshness_sla_minutes: 240
+contains_pii: false
+retention_days: 2555 # 7 years for SOX compliance
+schema_location: s3://schemas/lending/loan_decisions.asvc
+```
+
+### 6.2 Schema Evolution Rules
+
+| Change Type | Allowed | Version Bump |
+| ----------- | ------- | ------------ |
+| Add Optional Field | Yes | Patch (i.e. 1.2.1 --> 1.2.2) |
+| Add Required Field | Yes | Minor (i.e. 1.2.1 --> 1.3.0) |
+| Remove Field | No (deprecate then remove) | Major (i.e. 1.2.1 --> 2.0.0) |
+| Change Field Type | No (deprecate then remove) |  Major (i.e. 1.2.1 --> 2.0.0) |
+
+## 7. Observability + Oncall
+
+### 7.1 SLO Definitions
+
+| Metric | Target | Warning | Critical |
+| ------ | ------ | ------- | -------- |
+| Data freshness (batch) | < 4 hours | > 4 hours | > 6 hours |
+| Data freshness (streaming) | < 500ms | > 500ms | > 2 seconds |
+| Pipeline Success Rate | > 99.9% | < 99.9% | 99% |
+| Fraud detection accuracy | > 99% | < 99% | < 95% |
+
+### 7.2 Dashboards
+
+- Grafana: Pipeline execution time, processed rows, SLA success rate
+- Great Expectations: Row level quality by table
+- OpenLineage: Column level lineage for compliance audits
+
+### 7.3 Oncall Runbook
+
+See `docs/oncall_runbook.md` for:
+- Incident severity definitions
+- Common failures and remediations
+- Escalation paths
+- Post mortem template
+
