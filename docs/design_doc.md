@@ -208,8 +208,8 @@ CREATE TABLE silver.users_scd2 (
     credit_limit DECIMAL(10,2),
     membership_level STRING,
     is_current BOOLEAN,
-    effective_start_date DATETIME,
-    effective_end_date DATETIME,
+    effective_start_date DATE,
+    effective_end_date DATE,
     data_loaded_at TIMESTAMP
 )
 USING delta
@@ -331,7 +331,7 @@ See `docs/oncall_runbook.md` for:
 
 - [Delta Lake Documentation](https://docs.delta.io/latest/index.html)
 - [Spark Structured Streaming](https://spark.apache.org/docs/latest/streaming/index.html)
-- [Snowflake vs. Lakehouse: Practical Trade-offs (2025)](https://example.com/snowflake-lakehouse) *(placeholder)*
+- [Data Warehouse vs Data Lake vs Data Lakehouse](https://www.montecarlodata.com/blog-data-warehouse-vs-data-lake-vs-data-lakehouse-definitions-similarities-and-differences/)
 
 ### 11.3 Glossary
 
@@ -351,10 +351,10 @@ Here we will simulate the review + approvals of key stakeholders:
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Data Engineering Lead | [TBD] | 2026-05-02 | Pending |
-| Data Science Lead | [TBD] | 2026-05-02 | Pending |
-| Compliance Officer | [TBD] | 2026-05-02 | Pending |
-| Engineering Manager | [TBD] | 2026-05-02 | Pending |
+| Data Engineering Lead | [TBD] | 2026-05-09 | Pending |
+| Data Science Lead | [TBD] | 2026-05-09 | Pending |
+| Compliance Officer | [TBD] | 2026-05-09 | Pending |
+| Engineering Manager | [TBD] | 2026-05-09 | Pending |
 
 **Document Version History**
 

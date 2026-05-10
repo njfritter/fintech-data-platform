@@ -25,7 +25,7 @@ Once the data generation functionality is built out, the rest of the platform wi
 5. Self service tooling layer for dashboarding, feature backfills and more
 6. Observability stack encompassing metrics tracking, data lineage, oncall alerting, notifications and compliance logging 
 
-A more detailed design doc can be found here (TODO: INSERT LINK).
+A more detailed design doc can be found [here](./design_doc.md).
 
 ## High Level Platform Features
 
