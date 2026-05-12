@@ -47,7 +47,13 @@ For more business context see the associated [Product Requirements Document](./p
 
 ### 3.1 High Level Architecture Diagram
 
-TODO: INSERT DIAGRAM
+![BankingBuddy Architecture](./diagrams/bankingbuddy_architecture.png)
+
+*Figure 1: BankBuddy data platform architecture (detailed view)*
+
+![BankingBuddy Architecture Simplified](./diagrams/bankingbuddy_architecture_simplified.png)
+
+*Figure 2: Simplified view showing core data flow*
 
 ### 3.2 Technology Stack Overview
 
