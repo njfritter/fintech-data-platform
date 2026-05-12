@@ -47,7 +47,13 @@ For more business context see the associated [Product Requirements Document](./p
 
 ### 3.1 High Level Architecture Diagram
 
-TODO: INSERT DIAGRAM
+![BankingBuddy Architecture](./diagrams/bankingbuddy_architecture.png)
+
+*Figure 1: BankBuddy data platform architecture (detailed view)*
+
+![BankingBuddy Architecture Simplified](./diagrams/bankingbuddy_architecture_simplified.png)
+
+*Figure 2: Simplified view showing core data flow*
 
 ### 3.2 Technology Stack Overview
 
@@ -320,11 +326,10 @@ See `docs/oncall_runbook.md` for:
 ### 11.1 Related Documents
 
 - **Product Requirements Document:** [`docs/prd.md`](./prd.md)
-
-**TODO: Add below documents**
 - **Data definitions:** [`data_dictionary.md`](./data_dictionary.md)
-- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
 - **Production checklist:** [`production_readiness_checklist.md`](./production_readiness_checklist.md)
+- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
+**TODO: Add below documents**
 - **Schema Registry/Contracts:** `contracts/schema_registry.py`
 
 ### 11.2 External References
@@ -361,3 +366,4 @@ Here we will simulate the review + approvals of key stakeholders:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-05-04 | Data Engineering Team | Created Initial Draft |
+| 1.1 | 2026-05-09 | Data Engineering Team | Design Document Ready for Review |

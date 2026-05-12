@@ -47,7 +47,7 @@ BankingBuddy needs a data platform to track key business metrics, detect fraud i
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| Batch ingestion | Daily files from partners (CSV, Parquet, 837 EDI) | P0 |
+| Batch ingestion | Daily files from partners (CSV, Parquet, flat files) | P0 |
 | Streaming ingestion | Transaction events from Kafka | P0 |
 | Snapshot fact table | Key business metrics | P0 |
 | SCD Type 2 | Track user credit score changes over time | P0 |
@@ -126,11 +126,9 @@ BankingBuddy needs a data platform to track key business metrics, detect fraud i
 ## 10. Related Documents
 
 - **Technical deep dive:** [`design_doc.md`](./design_doc.md) (architecture, trade-offs, implementation)
-
-**TODO: Add below documents**
 - **Data definitions:** [`data_dictionary.md`](./data_dictionary.md)
-- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
 - **Production checklist:** [`production_readiness_checklist.md`](./production_readiness_checklist.md)
+- **On-call procedures:** [`oncall_runbook.md`](./oncall_runbook.md)
 
 ---
 
