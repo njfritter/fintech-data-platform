@@ -126,11 +126,9 @@ BankingBuddy needs a data platform to track key business metrics, detect fraud i
 ## 10. Related Documents
 
 - **Technical deep dive:** [`design_doc.md`](./design_doc.md) (architecture, trade-offs, implementation)
-
-**TODO: Add below documents**
 - **Data definitions:** [`data_dictionary.md`](./data_dictionary.md)
-- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
 - **Production checklist:** [`production_readiness_checklist.md`](./production_readiness_checklist.md)
+- **On-call procedures:** [`oncall_runbook.md`](./oncall_runbook.md)
 
 ---
 
