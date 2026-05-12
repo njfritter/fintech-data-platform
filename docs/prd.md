@@ -47,7 +47,7 @@ BankingBuddy needs a data platform to track key business metrics, detect fraud i
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| Batch ingestion | Daily files from partners (CSV, Parquet, 837 EDI) | P0 |
+| Batch ingestion | Daily files from partners (CSV, Parquet, flat files) | P0 |
 | Streaming ingestion | Transaction events from Kafka | P0 |
 | Snapshot fact table | Key business metrics | P0 |
 | SCD Type 2 | Track user credit score changes over time | P0 |
