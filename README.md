@@ -25,7 +25,9 @@ Once the data generation functionality is built out, the rest of the platform wi
 5. Self service tooling layer for dashboarding, feature backfills and more
 6. Observability stack encompassing metrics tracking, data lineage, oncall alerting, notifications and compliance logging 
 
-A more detailed design doc can be found [here](docs/design_doc.md).
+A more detailed design doc can be found [here](docs/design_doc.md). A simplified architecture diagram can be seen below (design doc holds the more in depth architecture diagram):
+
+![BankingBuddy Architecture Simplified](./docs/diagrams/bankingbuddy_architecture_simplified.png)
 
 ## High Level Platform Features
 
@@ -39,4 +41,29 @@ A more detailed design doc can be found [here](docs/design_doc.md).
 
 ## Local Setup
 
-TODO: INSERT WHEN READY
+```bash
+### Install brew and related packages
+sh mac_quickstart.sh
+
+## TODO: INSERT COMMAND TO DEPLOY DATA PLATFORM RESOURCES VIA DOCKER COMPOSE FILE
+```
+
+### Generating User Data
+
+You can use the script `scripts/generate_mock_data.py` to generate the required data for the fintech data platform:
+
+```bash
+### Generate User Data for 10000 Users (default)
+### Users, Statements, Payments, Transactions, Loan Applications
+pipenv run scripts/generate_mock_data.py
+
+### Generate User Data for 100000 Users
+### Users, Statements, Payments, Transactions, Loan Applications
+pipenv run scripts/generate_mock_data.py --users 100000
+
+### Generate Streaming Data (default: 1000 events)
+pipenv run scripts/generate_mock_data.py --stream
+
+### Generate 100000 Streaming Events
+pipenv run scripts/generate_mock_data.py --stream --stream-count 100000
+```

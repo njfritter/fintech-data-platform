@@ -6,10 +6,20 @@ name = "pypi"
 [packages]
 graphviz = "*"
 diagrams = "*"
+pandas = "*"
+numpy = "*"
+pyarrow = "*"
+faker = "*"
+python-dateutil = "*"
 
 [dev-packages]
 graphviz = "*"
 diagrams = "*"
+pandas = "*"
+numpy = "*"
+pyarrow = "*"
+faker = "*"
+python-dateutil = "*"
 
 [requires]
 python_version = "3.14"
