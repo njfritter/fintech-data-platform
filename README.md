@@ -45,3 +45,23 @@ sh mac_quickstart.sh
 
 ## TODO: INSERT COMMAND TO DEPLOY DATA PLATFORM RESOURCES VIA DOCKER COMPOSE FILE
 ```
+
+### Generating User Data
+
+You can use the script `scripts/generate_mock_data.py` to generate the required data for the fintech data platform:
+
+```bash
+### Generate User Data for 10000 Users (default)
+### Users, Statements, Payments, Transactions, Loan Applications
+pipenv run scripts/generate_mock_data.py
+
+### Generate User Data for 100000 Users
+### Users, Statements, Payments, Transactions, Loan Applications
+pipenv run scripts/generate_mock_data.py --users 100000
+
+### Generate Streaming Data (default: 1000 events)
+pipenv run scripts/generate_mock_data.py --stream
+
+### Generate 100000 Streaming Events
+pipenv run scripts/generate_mock_data.py --stream --stream-count 100000
+```
