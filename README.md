@@ -25,7 +25,9 @@ Once the data generation functionality is built out, the rest of the platform wi
 5. Self service tooling layer for dashboarding, feature backfills and more
 6. Observability stack encompassing metrics tracking, data lineage, oncall alerting, notifications and compliance logging 
 
-A more detailed design doc can be found [here](docs/design_doc.md).
+A more detailed design doc can be found [here](docs/design_doc.md). A simplified architecture diagram can be seen below (design doc holds the more in depth architecture diagram):
+
+![BankingBuddy Architecture Simplified](./docs/diagrams/bankingbuddy_architecture_simplified.png)
 
 ## High Level Platform Features
 
