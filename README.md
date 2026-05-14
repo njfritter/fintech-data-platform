@@ -39,4 +39,9 @@ A more detailed design doc can be found [here](docs/design_doc.md).
 
 ## Local Setup
 
-TODO: INSERT WHEN READY
+```bash
+### Install brew and related packages
+sh mac_quickstart.sh
+
+## TODO: INSERT COMMAND TO DEPLOY DATA PLATFORM RESOURCES VIA DOCKER COMPOSE FILE
+```
