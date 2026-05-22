@@ -28,12 +28,13 @@ x-airflow-common: &airflow-common
   restart: unless-stopped
 
 services:
-  # ============================================================================
+  # ===========================================================================
   # METADATA & STATE STORES
-  # ============================================================================
+  # ===========================================================================
   
   postgres:
     image: postgres:15-alpine
+    mem_limit: 1g
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -51,6 +52,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    mem_limit: 512m
     ports:
       - "6379:6379"
     volumes:
@@ -62,12 +64,13 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ============================================================================
+  # ===========================================================================
   # STREAMING - REDPANDA (Kafka Compatible)
-  # ============================================================================
+  # ===========================================================================
   
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    mem_limit: 2g
     command:
       - redpanda
       - start
@@ -75,6 +78,7 @@ services:
       - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
       - --set redpanda.enable_auto_create_topics=true
+      - --memory 2G
     ports:
       - "9092:9092"
       - "19092:19092"
@@ -88,12 +92,13 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ============================================================================
+  # ===========================================================================
   # OBJECT STORAGE - MINIO (S3 Compatible for Delta Lake)
-  # ============================================================================
+  # ===========================================================================
   
   minio:
     image: minio/minio:latest
+    mem_limit: 1g
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -112,6 +117,7 @@ services:
 
   minio-init:
     image: minio/mc:latest
+    mem_limit: 256m
     depends_on:
       minio:
         condition: service_healthy
@@ -129,21 +135,22 @@ services:
       "
     restart: "no"
 
-  # ============================================================================
-  # SPARK 4.1.0 CLUSTER (with Real-Time Mode support)
-  # ============================================================================
+  # ===========================================================================
+  # SPARK 4.1.0 CLUSTER (with Real-Time Mode)
+  # ===========================================================================
   
   spark-master:
     image: apache/spark:4.1.0
+    mem_limit: 2g
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_DAEMON_MEMORY=1g
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
-      # Enable Real-Time Mode
       - SPARK_SQL_STREAMING_RTM_ENABLED=true
     ports:
       - "8080:8080"
@@ -157,11 +164,14 @@ services:
 
   spark-worker:
     image: apache/spark:4.1.0
+    mem_limit: 6g
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_MEMORY=4g
       - SPARK_WORKER_CORES=2
+      - SPARK_DAEMON_MEMORY=512m
+      - SPARK_WORKER_OPTS=-Dspark.worker.cleanup.enabled=true
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -177,14 +187,16 @@ services:
     depends_on:
       - spark-master
     restart: unless-stopped
-    scale: 2
+    deploy:
+      replicas: 2
 
-  # Spark History Server (for viewing previous job metrics)
   spark-history-server:
     image: apache/spark:4.1.0
+    mem_limit: 1g
     command: /opt/spark/sbin/start-history-server.sh
     environment:
       - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/work/logs
+      - SPARK_DAEMON_MEMORY=512m
       - SPARK_NO_DAEMONIZE=true
     ports:
       - "18080:18080"
@@ -194,12 +206,13 @@ services:
       - spark-master
     restart: unless-stopped
 
-  # ============================================================================
+  # ===========================================================================
   # ORCHESTRATION - AIRFLOW 3.2.1
-  # ============================================================================
+  # ===========================================================================
   
   airflow-webserver:
     <<: *airflow-common
+    mem_limit: 1g
     command: webserver
     ports:
       - "8083:8080"
@@ -212,6 +225,7 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
+    mem_limit: 1g
     command: scheduler
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
@@ -222,16 +236,19 @@ services:
 
   airflow-worker:
     <<: *airflow-common
+    mem_limit: 1g
     command: celery worker
     restart: unless-stopped
 
   airflow-triggerer:
     <<: *airflow-common
+    mem_limit: 512m
     command: triggerer
     restart: unless-stopped
 
   airflow-init:
     <<: *airflow-common
+    mem_limit: 512m
     entrypoint: /bin/bash
     command:
       - -c
@@ -253,12 +270,13 @@ services:
         exit 0
     restart: "no"
 
-  # ============================================================================
+  # ===========================================================================
   # BI DASHBOARD - METABASE
-  # ============================================================================
+  # ===========================================================================
   
   metabase:
     image: metabase/metabase:latest
+    mem_limit: 1g
     ports:
       - "3001:3000"
     environment:
@@ -275,12 +293,13 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ============================================================================
+  # ===========================================================================
   # MONITORING - PROMETHEUS & GRAFANA
-  # ============================================================================
+  # ===========================================================================
   
   prometheus:
     image: prom/prometheus:latest
+    mem_limit: 512m
     ports:
       - "9090:9090"
     volumes:
@@ -293,6 +312,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    mem_limit: 512m
     ports:
       - "3000:3000"
     environment:
