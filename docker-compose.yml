@@ -144,8 +144,9 @@ services:
     mem_limit: 2g
     user: root
     command: /bin/bash -c "
+      mkdir -p /opt/spark/logs &&
       mkdir -p /opt/spark/work/logs &&
-      chown -R 185:185 /opt/spark/work &&
+      chown -R 185:185 /opt/spark &&
       gosu 185 /opt/spark/sbin/start-master.sh"
     environment:
       - SPARK_MASTER_HOST=spark-master
@@ -156,7 +157,7 @@ services:
       - "8080:8080"
       - "7077:7077"
     volumes:
-      - spark_data:/opt/spark/work
+      - spark_data:/opt/spark
     restart: unless-stopped
 
   spark-worker:
@@ -164,8 +165,9 @@ services:
     mem_limit: 6g
     user: root
     command: /bin/bash -c "
+      mkdir -p /opt/spark/logs &&
       mkdir -p /opt/spark/work/logs &&
-      chown -R 185:185 /opt/spark/work &&
+      chown -R 185:185 /opt/spark &&
       gosu 185 /opt/spark/sbin/start-worker.sh spark://spark-master:7077"
     environment:
       - SPARK_WORKER_MEMORY=4g
@@ -174,7 +176,7 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - spark_data:/opt/spark/work
+      - spark_data:/opt/spark
     depends_on:
       - spark-master
     restart: unless-stopped
@@ -186,8 +188,9 @@ services:
     mem_limit: 1g
     user: root
     command: /bin/bash -c "
+      mkdir -p /opt/spark/logs &&
       mkdir -p /opt/spark/work/logs &&
-      chown -R 185:185 /opt/spark/work &&
+      chown -R 185:185 /opt/spark &&
       gosu 185 /opt/spark/sbin/start-history-server.sh"
     environment:
       - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/work/logs
@@ -196,7 +199,7 @@ services:
     ports:
       - "18080:18080"
     volumes:
-      - spark_data:/opt/spark/work
+      - spark_data:/opt/spark
     depends_on:
       - spark-master
     restart: unless-stopped
