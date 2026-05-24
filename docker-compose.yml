@@ -142,13 +142,15 @@ services:
   spark-master:
     image: apache/spark:4.1.0
     mem_limit: 2g
+    user: root
+    command: /bin/bash -c "
+      mkdir -p /opt/spark/work/logs &&
+      chown -R 185:185 /opt/spark/work &&
+      gosu 185 /opt/spark/sbin/start-master.sh"
     environment:
-      - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_WEBUI_PORT=8080
       - SPARK_DAEMON_MEMORY=1g
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      # Enable Real-Time Mode
       - SPARK_SQL_STREAMING_RTM_ENABLED=true
     ports:
       - "8080:8080"
@@ -160,15 +162,15 @@ services:
   spark-worker:
     image: apache/spark:4.1.0
     mem_limit: 6g
+    user: root
+    command: /bin/bash -c "
+      mkdir -p /opt/spark/work/logs &&
+      chown -R 185:185 /opt/spark/work &&
+      gosu 185 /opt/spark/sbin/start-worker.sh spark://spark-master:7077"
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=4g
       - SPARK_WORKER_CORES=2
       - SPARK_DAEMON_MEMORY=512m
-    # REMOVE any custom command - let the image's default entrypoint work
-    # Do NOT use: command: /opt/spark/sbin/start-worker.sh
-    # The image handles this via SPARK_MODE environment variable
     ports:
       - "8081:8081"
     volumes:
