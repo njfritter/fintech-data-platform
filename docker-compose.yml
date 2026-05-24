@@ -186,7 +186,7 @@ services:
     command: /bin/bash -c "
       mkdir -p /opt/spark/work/logs &&
       chown -R 185:185 /opt/spark/work &&
-      su-exec 185 /opt/spark/sbin/start-history-server.sh"
+      gosu 185 /opt/spark/sbin/start-history-server.sh"
     environment:
       - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/opt/spark/work/logs
       - SPARK_DAEMON_MEMORY=512m
