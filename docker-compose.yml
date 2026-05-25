@@ -239,8 +239,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
     restart: unless-stopped
 
   airflow-scheduler:
@@ -257,8 +255,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      airflow-init:
-        condition: service_completed_successfully
     restart: unless-stopped
 
   airflow-worker:
@@ -276,6 +272,11 @@ services:
   airflow-init:
     <<: *airflow-common
     mem_limit: 512m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     entrypoint: /bin/bash
     command:
       - -c
