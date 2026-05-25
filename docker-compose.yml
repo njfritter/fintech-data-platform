@@ -362,7 +362,7 @@ services:
       postgres:
         condition: service_healthy
       metabase-init:
-        condition: service_completed_successfully
+        condition: service_started
     restart: unless-stopped
 
   # ===========================================================================
