@@ -70,7 +70,7 @@ services:
   
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
-    mem_limit: 3g
+    mem_limit: 4g
     command:
       - redpanda
       - start
