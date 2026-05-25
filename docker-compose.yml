@@ -160,7 +160,6 @@ services:
       - "7077:7077"
     volumes:
       - spark_data:/opt/spark
-    restart: unless-stopped
 
   spark-worker:
     image: apache/spark:4.1.0
@@ -186,7 +185,6 @@ services:
       - spark_data:/opt/spark
     depends_on:
       - spark-master
-    restart: unless-stopped
     deploy:
       replicas: 2
 
