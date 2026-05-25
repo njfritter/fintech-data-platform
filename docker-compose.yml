@@ -239,8 +239,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      airflow-init:
-        condition: service_started
     restart: unless-stopped
 
   airflow-scheduler:
@@ -257,8 +255,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      airflow-init:
-        condition: service_started
     restart: unless-stopped
 
   airflow-worker:
