@@ -223,11 +223,14 @@ services:
   airflow-webserver:
     <<: *airflow-common
     mem_limit: 1g
-    command: webserver
+    command: api-server
     ports:
-      - "8083:8080"
+      - "8083:8793"
+    environment:
+      - AIRFLOW__API__PORT=8793
+      - AIRFLOW__WEBSERVER__BASE_URL=http://localhost:8083
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8793/monitor/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -268,7 +271,14 @@ services:
           sleep 2
         done
         echo "Postgres is ready. Running migrations..."
+        
+        # Database migration (still works in Airflow 3.x)
         airflow db migrate
+        
+        # Set the auth manager (required for Airflow 3.x to use FAB auth)[citation:10]
+        airflow config set --section core --value "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" auth_manager
+        
+        # Create admin user (same as before)
         airflow users create \
           --username admin \
           --password admin \
@@ -276,12 +286,16 @@ services:
           --lastname User \
           --role Admin \
           --email admin@example.com || true
+        
+        # Add Spark connection (still works)
         airflow connections add 'spark_default' \
           --conn-type 'spark' \
           --conn-host 'spark://spark-master:7077' || true
+        
         airflow variables set DATA_LAKE_BUCKET 'bronze'
         airflow variables set DELTA_LAKE_PATH 's3a://bronze/'
-        echo "✅ Airflow initialized"
+        
+        echo "✅ Airflow 3.x initialized successfully"
         exit 0
     restart: "no"
 
