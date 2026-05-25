@@ -77,7 +77,6 @@ services:
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
       - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      - --set redpanda.enable_auto_create_topics=true
       - --memory 3G
       - --smp 1
       - --overprovisioned
