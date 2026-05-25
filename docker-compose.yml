@@ -173,6 +173,11 @@ services:
       - SPARK_WORKER_MEMORY=4g
       - SPARK_WORKER_CORES=2
       - SPARK_DAEMON_MEMORY=512m
+      # Disable worker timeout to prevent premature shutdown during long-running jobs
+      # TODO: Replace with basic heartbeat job to keep worker alive without risking resource leaks
+      - SPARK_WORKER_OPTS=-Dspark.worker.timeout=0
+      - SPARK_WORKER_CLEANUP_ENABLED=false
+      - SPARK_WORKER_CLEANUP_INTERVAL=0
     ports:
       - "8081:8081"
     volumes:
