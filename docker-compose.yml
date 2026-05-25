@@ -246,7 +246,7 @@ services:
     mem_limit: 1g
     command: scheduler
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      test: ["CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -344,7 +344,7 @@ services:
     restart: "no"
   metabase:
     image: metabase/metabase:latest
-    mem_limit: 1g
+    mem_limit: 3g
     ports:
       - "3001:3000"
     environment:
@@ -354,6 +354,8 @@ services:
       MB_DB_PORT: 5432
       MB_DB_USER: airflow
       MB_DB_PASS: airflow
+      # Add Java heap size limits to limit memory usage
+      JAVA_OPTS: "-Xmx1536m -Xms512m"
     volumes:
       - metabase_data:/metabase.db
     depends_on:
