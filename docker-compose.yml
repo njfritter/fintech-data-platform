@@ -239,6 +239,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      airflow-init:
+        condition: service_started
     restart: unless-stopped
 
   airflow-scheduler:
@@ -255,6 +257,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      airflow-init:
+        condition: service_started
     restart: unless-stopped
 
   airflow-worker:
@@ -290,7 +294,7 @@ services:
         # Database migration (still works in Airflow 3.x)
         airflow db migrate
         
-        # Set the auth manager (required for Airflow 3.x to use FAB auth)[citation:10]
+        # Set the auth manager (required for Airflow 3.x to use FAB auth)
         airflow config set --section core --value "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" auth_manager
         
         # Create admin user (same as before)
