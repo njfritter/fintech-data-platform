@@ -16,5 +16,8 @@ brew install pipenv
 # Install graphviz (does not work with pipenv)
 brew install graphviz
 
+# Install Colima/Docker related dependencies
+brew install colima docker docker-compose
+
 # Install python packages
 pipenv install --dev
