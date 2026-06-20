@@ -1,0 +1,14 @@
+aws_region          = "us-east-1"
+environment         = "dev"
+instance_type       = "r6i.2xlarge"
+asg_min_size        = 1
+asg_max_size        = 4
+asg_desired_capacity = 2
+
+# Cost-saving schedules (UTC)
+# Stop at 1 AM UTC (~9 PM US Eastern), Start at 9 AM UTC (~5 AM US Eastern)
+start_schedule = "cron(0 9 * * MON-FRI)"
+stop_schedule  = "cron(0 1 * * MON-FRI)"
+
+github_repo_url  = "https://github.com/your-username/fincore-data-platform.git"
+github_branch    = "main"
