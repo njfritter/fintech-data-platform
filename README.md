@@ -39,7 +39,9 @@ A more detailed design doc can be found [here](docs/design_doc.md). A simplified
 - Metrics tracking and on-call alerting for platform engineers
 - Dashboards for executives and business leaders
 
-## Setup Options
+## Setup Options (Entire Platform Inside Docker Container)
+
+**NOTE: This setup is running into issues with the Airflow webserver stuck in a constant restart loop due to a conflict with the Airflow database migration (many attempts have been made to fix this). [This issue is captured here](https://github.com/njfritter/fintech-data-platform/issues/5) and will be solved at a later time.**
 
 ### 1. Local Setup
 
@@ -170,7 +172,7 @@ sudo docker exec -it fintech-data-platform-spark-master-1 cat /opt/spark/conf/sp
 INSERT INSTRUCTIONS
 
 
-### Generating User Data
+## Generating User Data
 
 You can use the script `scripts/generate_mock_data.py` to generate the required data for the fintech data platform:
 
