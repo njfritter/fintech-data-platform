@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'spark-master'
+    static_configs:
+      - targets: ['spark-master:8080']
+
+  - job_name: 'spark-workers'
+    static_configs:
+      - targets: ['spark-worker:8081']
+
+  - job_name: 'airflow'
+    static_configs:
+      - targets: ['airflow-webserver:8080']
+    metrics_path: '/metrics'
+
+  - job_name: 'redpanda'
+    static_configs:
+      - targets: ['redpanda:9092']
+
+  - job_name: 'minio'
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ['minio:9000']
