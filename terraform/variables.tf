@@ -61,13 +61,13 @@ variable "scale_down_cpu_threshold" {
 variable "start_schedule" {
   description = "Cron schedule for starting instances (UTC)"
   type        = string
-  default     = "cron(0 9 * * MON-FRI)"  # 9 AM UTC weekdays
+  default     = "cron(0 9 ? * MON-FRI *)"  # 9 AM UTC (~5 AM US Eastern)
 }
 
 variable "stop_schedule" {
   description = "Cron schedule for stopping instances (UTC)"
   type        = string
-  default     = "cron(0 1 * * MON-FRI)"  # 1 AM UTC weekdays (covers ~8 PM US Eastern)
+  default     = "cron(0 1 ? * MON-FRI *)"  # 1 AM UTC (~9 PM US Eastern)
 }
 
 variable "kafka_instance_type" {
