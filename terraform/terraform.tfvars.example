@@ -10,5 +10,5 @@ asg_desired_capacity = 2
 start_schedule = "cron(0 9 * * MON-FRI)"
 stop_schedule  = "cron(0 1 * * MON-FRI)"
 
-github_repo_url  = "https://github.com/your-username/fincore-data-platform.git"
+github_repo_url  = "https://github.com/your-username/fintech-data-platform.git"
 github_branch    = "main"

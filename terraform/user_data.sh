@@ -3,18 +3,17 @@ set -e -x
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "/var/log/fincore-user-data.log"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "/var/log/fintech-data-platform-user-data.log"
 }
 
 log "=========================================="
-log "FinCore Startup Script Started"
+log "Fintech Data Platform Startup Script Started"
 log "=========================================="
 
 # Configuration (passed from Terraform)
 ENVIRONMENT="${environment}"
 GITHUB_REPO="${github_repo}"
 GITHUB_BRANCH="${github_branch}"
-ADMIN_PASSWORD="${admin_password}"
 
 # Install Docker and dependencies
 log "Installing Docker..."
@@ -51,9 +50,9 @@ dpkg -i -E amazon-cloudwatch-agent.deb
 rm amazon-cloudwatch-agent.deb
 
 # Clone repository
-log "Cloning FinCore repository..."
+log "Cloning Fintech Data Platform repository..."
 cd /home/ubuntu
-sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fincore-data-platform
+sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fintech-data-platform
 
 # Set up CloudWatch Agent config
 cat > /opt/aws/amazon-cloudwatch-agent/etc/config.json << 'EOF'
@@ -75,6 +74,5 @@ EOF
 
 systemctl restart amazon-cloudwatch-agent
 
-log "FinCore setup complete at $(date)"
-log "Admin password: ${ADMIN_PASSWORD}"
+log "Fintech Data Platform setup complete at $(date)"
 log "=========================================="

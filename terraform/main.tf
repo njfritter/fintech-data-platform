@@ -239,19 +239,8 @@ resource "aws_iam_role_policy_attachment" "ec2_cloudwatch" {
 # -----------------------------------------------------------------------------
 # Launch Template for EC2 Instances
 # -----------------------------------------------------------------------------
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]  # Canonical
-  
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"]
-  }
-  
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+data "aws_ssm_parameter" "ubuntu_ami" {
+  name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
 }
 
 resource "random_password" "airflow_admin" {
@@ -261,7 +250,7 @@ resource "random_password" "airflow_admin" {
 
 resource "aws_launch_template" "fintech-data-platform" {
   name_prefix   = "fintech-data-platform-${var.environment}-"
-  image_id      = data.aws_ami.ubuntu.id
+  image_id      = data.aws_ssm_parameter.ubuntu_ami.value
   instance_type = var.ec2_instance_type
   
   iam_instance_profile {
@@ -483,12 +472,13 @@ resource "aws_emrserverless_application" "spark" {
   type          = "SPARK"
   
   initial_capacity {
-    worker_type = "Driver"
-    worker_count = 1
-    
-    worker_configuration {
-      cpu    = "4 vCPU"
-      memory = "16 GB"
+    initial_capacity_type = "Driver"
+    initial_capacity_config {
+        worker_count = 1
+        worker_configuration {
+        cpu    = "4 vCPU"
+        memory = "16 GB"
+        }
     }
   }
   
@@ -502,8 +492,8 @@ resource "aws_emrserverless_application" "spark" {
   }
   
   auto_stop_configuration {
-    enabled    = true
-    timeout    = 15  # minutes of inactivity before auto-stop
+    enabled = true
+    idle_timeout_minutes    = 15  # minutes of inactivity before auto-stop
   }
   
   tags = {
@@ -751,13 +741,13 @@ resource "aws_lambda_function" "stop_instances" {
 # -----------------------------------------------------------------------------
 resource "aws_cloudwatch_event_rule" "start_schedule" {
   name                = "fintech-data-platform-${var.environment}-start-schedule"
-  description         = "Schedule to start fintech-data-platform instances"
+  description         = "Schedule to start Fintech Data Platform instances"
   schedule_expression = var.start_schedule
 }
 
 resource "aws_cloudwatch_event_rule" "stop_schedule" {
   name                = "fintech-data-platform-${var.environment}-stop-schedule"
-  description         = "Schedule to stop fintech-data-platform instances"
+  description         = "Schedule to stop Fintech Data Platform instances"
   schedule_expression = var.stop_schedule
 }
 

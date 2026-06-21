@@ -1,6 +1,6 @@
 output "msk_bootstrap_brokers" {
   description = "MSK bootstrap brokers string"
-  value       = aws_msk_cluster.fincore.bootstrap_brokers_sasl_iam
+  value       = aws_msk_cluster.fintech-data-platform.bootstrap_brokers_sasl_iam
   sensitive   = true
 }
 
@@ -16,7 +16,7 @@ output "emr_serverless_application_id" {
 
 output "asg_name" {
   description = "Auto Scaling Group name"
-  value       = aws_autoscaling_group.fincore.name
+  value       = aws_autoscaling_group.fintech-data-platform.name
 }
 
 output "airflow_admin_password" {

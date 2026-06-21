@@ -15,7 +15,7 @@ terraform {
   backend "s3" {
     # Configure your backend here or use -backend-config
     bucket         = "your-terraform-state-bucket"
-    key            = "fincore/terraform.tfstate"
+    key            = "fintech-data-platform/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "terraform-locks"
     encrypt        = true
