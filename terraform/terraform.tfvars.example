@@ -1,6 +1,6 @@
 aws_region          = "us-east-1"
 environment         = "dev"
-instance_type       = "r6i.2xlarge"
+ec2_instance_type   = "r6i.2xlarge"
 asg_min_size        = 1
 asg_max_size        = 4
 asg_desired_capacity = 2

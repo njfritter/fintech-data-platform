@@ -535,6 +535,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "data_lake" {
   rule {
     id     = "transition-to-glacier"
     status = "Enabled"
+
+    filter {
+      prefix = "" # This applies the rule to the entire bucket
+    }
     
     transition {
       days          = 90

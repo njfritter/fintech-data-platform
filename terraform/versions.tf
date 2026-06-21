@@ -17,7 +17,7 @@ terraform {
     bucket         = "your-terraform-state-bucket"
     key            = "fintech-data-platform/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "terraform-locks"
+    use_lockfile   = true
     encrypt        = true
   }
 }
