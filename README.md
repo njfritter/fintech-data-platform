@@ -115,17 +115,30 @@ deployment/aws/
 # 2. Configure AWS credentials
 aws configure
 
-# 3. Set up S3 backend (one-time, then update backend config in versions.tf)
+# 3. (If using MFA) Get temporary credentials via STS
+#     Replace placeholders with your account number, MFA device name, and token
+aws sts get-session-token \
+  --serial-number arn:aws:iam::{YOUR-AWS-ACCOUNT-NUMBER}:mfa/{YOUR-MFA-DEVICE-NAME} \
+  --profile {YOUR-AWS-PROFILE-NAME} \
+  --token-code {TOKEN-FROM-AUTHENTICATOR-APP} \
+  --duration-seconds 43200
+
+#     Set the returned credentials as environment variables:
+export AWS_ACCESS_KEY_ID=<AccessKeyId>
+export AWS_SECRET_ACCESS_KEY=<SecretAccessKey>
+export AWS_SESSION_TOKEN=<SessionToken>
+
+# 4. Set up S3 backend (one-time, then update backend config in versions.tf)
 aws s3 mb s3://your-terraform-state-bucket --region us-east-1
 
-# 4. Deploy infrastructure
+# 5. Deploy infrastructure
 cd deployment/aws/terraform
 cp terraform.tfvars.example terraform.tfvars   # Edit with your values
 terraform init
 terraform plan
 terraform apply -auto-approve
 
-# 5. Get outputs
+# 6. Get outputs
 terraform output
 ```
 
