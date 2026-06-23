@@ -390,7 +390,7 @@ def verify_data(output_dir: str = "./data"):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate mock fintech data for FinCore project")
+    parser = argparse.ArgumentParser(description="Generate mock fintech data for the Fintech Data Platform project")
     parser.add_argument("--output", default="./data", help="Output directory (default: ./data)")
     parser.add_argument("--users", type=int, default=10000, help="Number of users to generate (default: 10000)")
     parser.add_argument("--stream", action="store_true", help="Generate streaming events only")

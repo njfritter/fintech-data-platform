@@ -1,4 +1,5 @@
 # fintech-data-platform
+
 A complete FinTech data platform designed to cover batch and streaming ETL, self service analytics, sensitive data and audit compliance and more for use cases such as lending, transactions and fraud detection.
 
 ## Project Rationale
@@ -17,47 +18,40 @@ Because this project uses synthetic data, there will need to be tools built out 
 
 ## High Level Architecture
 
-Once the data generation functionality is built out, the rest of the platform will follow:
+The platform follows a [medallion architecture](https://www.databricks.com/blog/what-is-medallion-architecture) (Bronze/Silver/Gold) on Delta Lake, processing data via both batch and streaming pipelines:
+
 1. Extensible configuration based data ingestion layer
 2. Staging data layer for raw, immutable data from source systems
 3. Intermediate data layer for cleansed, deduplicated data
 4. Business facing data layer with highly optimized tables for analysis and model training
 5. Self service tooling layer for dashboarding, feature backfills and more
-6. Observability stack encompassing metrics tracking, data lineage, oncall alerting, notifications and compliance logging 
+6. Observability stack encompassing metrics tracking, data lineage, oncall alerting, notifications and compliance logging
 
-A more detailed design doc can be found [here](docs/design_doc.md). A simplified architecture diagram can be seen below (design doc holds the more in depth architecture diagram):
+A more detailed design doc can be found [here](docs/design_doc.md).
 
-![BankingBuddy Architecture Simplified](./docs/diagrams/bankingbuddy_architecture_simplified.png)
+## Deployment Options
 
-## High Level Platform Features
+This platform supports two deployment modes — **Local** (Docker Compose, for development) and **AWS** (managed services, for production), with **GCP** planned. Files are organized under `deployment/` by cloud provider.
 
-- Batch and streaming ETL use case support
-- Configuration driven data ingestion from a wide variety of data sources and formats (and onboarding new sources)
-- Clear data models that can scale to accommodate future analytical use cases
-- Self service tools to allow for faster insights and experimentation
-- Implements data auditability, sensitive data access controls and clear data usage distinctions
-- Metrics tracking and on-call alerting for platform engineers
-- Dashboards for executives and business leaders
+### 1. Local Development (Docker Compose)
 
-## Setup Options (Entire Platform Inside Docker Container)
+**NOTE: This setup is running into issues with the Airflow webserver stuck in a constant restart loop due to a conflict with the Airflow database migration. [Issue tracked here](https://github.com/njfritter/fintech-data-platform/issues/5).**
 
-**NOTE: This setup is running into issues with the Airflow webserver stuck in a constant restart loop due to a conflict with the Airflow database migration (many attempts have been made to fix this). [This issue is captured here](https://github.com/njfritter/fintech-data-platform/issues/5) and will be solved at a later time.**
+![Local Architecture Simplified](./docs/diagrams/local/bankingbuddy_architecture_simplified.png)
 
-### 1. Local Setup
+> Simplified view. See the [detailed architecture diagram](./docs/diagrams/local/bankingbuddy_architecture.png) and the [design doc](./docs/design_doc.md) for the full breakdown.
 
 **Requirements:**
-- 4 CPU minimum (8 CPU or more for more cushion) 
+- 4 CPU minimum (8 CPU or more for more cushion)
 - 16GB RAM minimum (24GB RAM or more for more cushion)
 
-If your local machine does not meet these requirements, proceed to the [Cloud Deployment](#2-deploy-to-the-cloud) section below.
-
-#### Spinning Up the Stack
+If your local machine does not meet these requirements, proceed to the [AWS Deployment](#2-aws-deployment-production) section below.
 
 ```bash
-## Install brew and related packages
-sh mac_quickstart.sh
+# Install brew and related packages
+sh scripts/local/mac_quickstart.sh
 
-## Start Colima (used for more memory efficient VM management)
+# Start Colima (used for more memory efficient VM management)
 colima start --memory 16 --cpu 4
 
 # Create necessary directories
@@ -67,127 +61,118 @@ mkdir -p data logs
 sudo docker compose up airflow-init -d
 sudo docker compose up metabase-init -d
 
-## Start up rest of the fintech data platform stack
+# Start up rest of the stack
 docker compose up -d
 
-## Run some test commands to confirm the stack spun up successfully
-docker exec -it fintech-data-platform-airflow-scheduler-1 airflow version # Should show 3.2.1
-
-docker exec -it fintech-data-platform-spark-worker-1 spark-submit --version # Should show 4.1.0
-
-docker exec -it fintech-data-platform-spark-master-1 cat /opt/spark/conf/spark-env.sh # Verify RTM is enabled
+# Verify the stack
+docker exec -it fintech-data-platform-airflow-scheduler-1 airflow version
+docker exec -it fintech-data-platform-spark-worker-1 spark-submit --version
+docker exec -it fintech-data-platform-spark-master-1 cat /opt/spark/conf/spark-env.sh
 ```
 
-### 2. Deploy to the Cloud 
+### 2. AWS Deployment (Production)
 
-If you are constrained by memory on your local machine, you will need to deploy this stack remotely onto a machine with more compute power.
+![AWS Architecture Simplified](./docs/diagrams/aws/aws_architecture_simplified.png)
 
-The classic option is the cloud, and both AWS and GCP are demonstrated below.
+> Simplified view. See the [detailed architecture diagram](./docs/diagrams/aws/aws_architecture.png) for the full component breakdown.
 
-#### 2.1 AWS
+> **Note:** This deployment provisions managed AWS services (MSK, EMR Serverless, Aurora, S3) for a production-grade stack, orchestrated via Terraform.
 
-Follow these instructions to set up an AWS account. Then when ready:
+#### Prerequisites
 
-1. Upload the script to S3 either via the console or the AWS CLI as such:
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.5.0
+- AWS CLI configured with appropriate credentials
+- An S3 bucket for Terraform state (set up once)
+
+#### Directory Structure
+
+All AWS deployment files live under `deployment/aws/`:
+
+```
+deployment/aws/
+├── terraform/
+│   ├── main.tf                   # Main infrastructure definition
+│   ├── variables.tf               # Input variables
+│   ├── outputs.tf                 # Output values
+│   ├── versions.tf                # Provider and backend config
+│   ├── terraform.tfvars.example
+│   ├── user_data.sh               # EC2 startup script
+│   └── lambda/                    # Lambda for cost optimization
+│       ├── start_instances.py
+│       └── stop_instances.py
+├── iam/
+│   ├── fintech-data-platform-terraform-policy-1.json
+│   ├── fintech-data-platform-terraform-policy-2.json
+│   └── s3-bucket-policy.txt
+└── scripts/
+    └── aws_user_data_script.sh    # Quick EC2 Docker Compose setup
+```
+
+#### Deploying via Terraform (Managed Services)
 
 ```bash
-aws s3 cp scripts/cloud/aws_user_data_script.sh s3://your-bucket-name/scripts
+# 1. Apply IAM permissions (see deployment/aws/iam/)
+# 2. Configure AWS credentials
+aws configure
+
+# 3. Set up S3 backend (one-time, then update backend config in versions.tf)
+aws s3 mb s3://your-terraform-state-bucket --region us-east-1
+
+# 4. Deploy infrastructure
+cd deployment/aws/terraform
+cp terraform.tfvars.example terraform.tfvars   # Edit with your values
+terraform init
+terraform plan
+terraform apply -auto-approve
+
+# 5. Get outputs
+terraform output
 ```
 
-2. Launch an EC2 instance with the following configurations:
-    - AMI: `Ubuntu Server 24.04 LTS`
-        - Architecture: `x86`
-    - Instance Type: `t3.2xlarge`
-        - 8 vCPUs / 32 GiB RAM to run the full stack comfortably
-        - 4 vCPUs / 24 GiB RAM would be enough to run the full stack
-    - Create a new key pair for SSH access (make sure the .pem file downloads to your local machine)
-    - Create a new security group for the EC2 instance
-        - Configure access from your IP ("My IP")
-    - Configure 24 GB gp3 storage (free tier eligible)
-    - In the Advanced Details section, paste this into the User data text box:
-```bash
-Content-Type: multipart/mixed; boundary="==BOUNDARY=="
-MIME-Version: 1.0
+#### Quick EC2 Deployment (Docker Compose on AWS)
 
---==BOUNDARY==
-Content-Type: text/x-shellscript; charset="us-ascii"
+For a single-VM deployment running the Docker Compose stack on AWS, see [`deployment/aws/scripts/aws_user_data_script.sh`](./deployment/aws/scripts/aws_user_data_script.sh).
 
-#!/bin/bash
-set -e -x
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+### 3. GCP Deployment (Planned)
 
-echo "===== Starting AWS CLI installation at $(date) ====="
-
-# Update and install prerequisites
-apt-get update -y
-apt-get install -y curl unzip
-
-# Install AWS CLI v2
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
-unzip -q /tmp/awscliv2.zip -d /tmp/
-/tmp/aws/install
-rm -rf /tmp/awscliv2.zip /tmp/aws
-
-# Verify installation
-aws --version
-
-# Download your script from S3 (REPLACE THIS WITH YOUR ACTUAL S3 PATH)
-aws s3 cp s3://your-bucket-name/aws_user_data_script.sh /tmp/aws_user_data_script.sh
-
-# Make it executable and run
-chmod +x /tmp/aws_user_data_script.sh
-/tmp/aws_user_data_script.sh
-
-echo "===== AWS CLI setup complete at $(date) ====="
-
---==BOUNDARY==--
-```
-
-3. Configure Security Group to allow ports 8080, 8083, 3000, 9000, 9001 for your stack
-
-4. After a few minutes, SSH onto your instance to confirm everything has been set up properly:
-
-a. Open a terminal
-b. Run this command, if necessary, to ensure your key is not publicly viewable: `chmod 400 "YOUR-KEY-PAIR.pem"`
-c. Connect to your instance using its Public DNS:
-- Example instance name: `ec2-32-198-81-130.compute-1.amazonaws.com`
-- Example ssh command:
-`ssh -i "YOUR-KEY-PAIR.pem" ubuntu@ec2-32-198-81-130.compute-1.amazonaws.com`
-```
-
-5. While on your instance, after a few minutes check the status of each of the services:
-
-```bash
-sudo docker compose ps # Show each container and their status
-
-sudo docker exec -it fintech-data-platform-airflow-scheduler-1 airflow version # Should show 3.2.1
-
-sudo docker exec -it fintech-data-platform-spark-worker-1 spark-submit --version # Should show 4.1.0
-
-sudo docker exec -it fintech-data-platform-spark-master-1 cat /opt/spark/conf/spark-env.sh # Verify RTM is enabled
-```
-
-#### 2.2 GCP
-
-INSERT INSTRUCTIONS
-
+> **Coming soon.** A GCP deployment path is planned and will live under `deployment/gcp/`. A startup script for a single Compute VM is already available at [`deployment/gcp/scripts/gcp_startup_script.sh`](./deployment/gcp/scripts/gcp_startup_script.sh) — a full Terraform-based deployment (using Dataproc, Pub/Sub, Cloud Storage, Cloud SQL) will follow.
 
 ## Generating User Data
 
-You can use the script `scripts/generate_mock_data.py` to generate the required data for the fintech data platform:
+Use `scripts/generate_mock_data.py` to generate synthetic fintech data:
 
 ```bash
-### Generate User Data for 10000 Users (default)
-### Users, Statements, Payments, Transactions, Loan Applications
-pipenv run scripts/generate_mock_data.py
+# Generate data for 10,000 users (default)
+pipenv run python scripts/generate_mock_data.py
 
-### Generate User Data for 100000 Users
-### Users, Statements, Payments, Transactions, Loan Applications
-pipenv run scripts/generate_mock_data.py --users 100000
+# Generate data for 100,000 users
+pipenv run python scripts/generate_mock_data.py --users 100000
 
-### Generate Streaming Data (default: 1000 events)
-pipenv run scripts/generate_mock_data.py --stream
+# Generate streaming events (default: 1,000)
+pipenv run python scripts/generate_mock_data.py --stream
 
-### Generate 100000 Streaming Events
-pipenv run scripts/generate_mock_data.py --stream --stream-count 100000
+# Generate 100,000 streaming events
+pipenv run python scripts/generate_mock_data.py --stream --stream-count 100000
 ```
+
+## Generating Architecture Diagrams
+
+Architecture diagrams are generated using the `diagrams` Python library:
+
+```bash
+# Local architecture
+pipenv run python docs/diagrams/local/local_architecture_diagram.py
+
+# AWS architecture
+pipenv run python docs/diagrams/aws/aws_architecture.py
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Design Doc](docs/design_doc.md) | Detailed architecture, technology choices, tradeoffs |
+| [PRD](docs/prd.md) | Product requirements and business context |
+| [Data Dictionary](docs/data_dictionary.md) | Schema definitions, PII classifications, ownership |
+| [On-Call Runbook](docs/oncall_runbook.md) | Incident response procedures |
+| [Production Readiness Checklist](docs/production_readiness_checklist.md) | Go-live requirements |
