@@ -14,7 +14,7 @@ terraform {
   
   backend "s3" {
     # Configure your backend here or use -backend-config
-    bucket         = "your-terraform-state-bucket"
+    bucket         = "nate-aws-bucket-891377165210"
     key            = "fintech-data-platform/terraform.tfstate"
     region         = "us-east-1"
     use_lockfile   = true

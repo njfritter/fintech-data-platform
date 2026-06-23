@@ -89,7 +89,7 @@ variable "emr_release_label" {
 }
 
 variable "github_repo_url" {
-  description = "GitHub repository URL for FinCore code"
+  description = "GitHub repository URL for Fintech Data Platform code"
   type        = string
   default     = "https://github.com/your-username/fintech-data-platform.git"
 }
