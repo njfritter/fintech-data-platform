@@ -29,3 +29,8 @@ output "s3_data_lake_bucket" {
   description = "S3 Data Lake bucket name"
   value       = aws_s3_bucket.data_lake.id
 }
+
+output "mock_data_generator_private_ip" {
+  description = "Private IP of the mock data generator EC2 instance"
+  value       = aws_instance.mock_data_generator.private_ip
+}

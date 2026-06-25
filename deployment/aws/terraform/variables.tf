@@ -105,3 +105,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "kafka_replication_factor" {
+  description = "Kafka topic replication factor"
+  type        = number
+  default     = 3
+}
+
+variable "kafka_partition_count" {
+  description = "Number of Kafka topic partitions"
+  type        = number
+  default     = 3
+}
+
+variable "kafka_topic_name" {
+  description = "Kafka topic name for streaming data"
+  type        = string
+  default     = "fintech.events"
+}

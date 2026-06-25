@@ -12,3 +12,7 @@ stop_schedule  = "cron(0 1 ? * MON-FRI *)"
 
 github_repo_url  = "https://github.com/your-username/fintech-data-platform.git"
 github_branch    = "main"
+
+kafka_replication_factor = 3
+kafka_partition_count = 3
+kafka_topic_name="fintech.events"

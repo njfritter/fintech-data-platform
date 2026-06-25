@@ -236,6 +236,75 @@ resource "aws_iam_role_policy_attachment" "ec2_cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+resource "aws_iam_role" "mock_data_role" {
+  name = "fintech-data-platform-${var.environment}-mock-data-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "mock_data_policy" {
+  name = "fintech-data-platform-${var.environment}-mock-data-policy"
+  role = aws_iam_role.mock_data_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.data_lake.arn,
+          "${aws_s3_bucket.data_lake.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kafka:DescribeCluster",
+          "kafka:GetBootstrapBrokers"
+        ]
+        Resource = aws_msk_cluster.fintech-data-platform.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kafka-cluster:Connect",
+          "kafka-cluster:DescribeTopic",
+          "kafka-cluster:WriteData"
+        ]
+        Resource = [
+          "arn:aws:kafka:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/${aws_msk_cluster.fintech-data-platform.cluster_name}/*",
+          "arn:aws:kafka:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/${aws_msk_cluster.fintech-data-platform.cluster_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "mock_data_ssm" {
+  role       = aws_iam_role.mock_data_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "mock_data_profile" {
+  name = "fintech-data-platform-${var.environment}-mock-data-profile"
+  role = aws_iam_role.mock_data_role.name
+}
+
 # -----------------------------------------------------------------------------
 # Launch Template for EC2 Instances
 # -----------------------------------------------------------------------------
@@ -294,6 +363,40 @@ resource "aws_launch_template" "fintech-data-platform" {
   
   tags = {
     Name = "fintech-data-platform-${var.environment}-launch-template"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Mock Data Generator EC2 Instance
+# -----------------------------------------------------------------------------
+
+resource "aws_instance" "mock_data_generator" {
+  ami                         = data.aws_ssm_parameter.ubuntu_ami.value
+  instance_type               = "t3.medium"
+  subnet_id                   = aws_subnet.private[0].id
+  vpc_security_group_ids      = [aws_security_group.fintech-data-platform.id]
+  iam_instance_profile        = aws_iam_instance_profile.mock_data_profile.name
+  associate_public_ip_address = false
+
+  user_data = base64encode(templatefile("${path.module}/user_data_mock.sh", {
+    environment     = var.environment
+    github_repo     = var.github_repo_url
+    github_branch   = var.github_branch
+    aws_region      = var.aws_region
+    s3_bucket       = aws_s3_bucket.data_lake.id
+    msk_bootstrap   = aws_msk_cluster.fintech-data-platform.bootstrap_brokers_sasl_iam
+    msk_cluster_arn = aws_msk_cluster.fintech-data-platform.arn
+    kafka_topic     = var.kafka_topic_name
+    stream_count    = 1000
+  }))
+
+  tags = {
+    Name = "fintech-data-platform-${var.environment}-mock-data-generator"
+  }
+
+  # Ensure the instance is terminated when terraform destroy is run
+  lifecycle {
+    create_before_destroy = true
   }
 }
 

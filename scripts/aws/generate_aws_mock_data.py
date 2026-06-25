@@ -8,8 +8,8 @@ import json
 import os
 import random
 import uuid
-from datetime import datetime, timedelta, date
 import argparse
+from datetime import datetime, timedelta, date
 import boto3
 import pandas as pd
 import numpy as np
@@ -17,11 +17,36 @@ from faker import Faker
 from kafka import KafkaProducer
 from botocore.exceptions import ClientError
 
+# Try importing MSK IAM signer
+try:
+    from msk_iam_sasl_sign import MSKAuthTokenProvider
+    MSK_SIGNER_AVAILABLE = True
+except ImportError:
+    MSK_SIGNER_AVAILABLE = False
+    print("⚠️ msk-iam-sasl-signer not available. IAM authentication will fail.")
+    print("   Install with: pip install msk-iam-sasl-signer")
+
 # Initialize Faker
 fake = Faker()
 fake.seed_instance(42)
 random.seed(42)
 np.random.seed(42)
+
+
+class MSKTokenProvider:
+    """Token provider for IAM authentication with MSK"""
+    
+    def __init__(self, region: str):
+        self.region = region
+    
+    def token(self):
+        """Generate auth token using MSK IAM signer"""
+        if MSK_SIGNER_AVAILABLE:
+            token, _ = MSKAuthTokenProvider.generate_auth_token(self.region)
+            return token
+        else:
+            raise ImportError("msk-iam-sasl-signer is not installed")
+
 
 class AWSFinTechDataGenerator:
     """Generate and upload mock fintech data to AWS services"""
@@ -31,13 +56,27 @@ class AWSFinTechDataGenerator:
         self.aws_region = aws_region
         self.s3_client = boto3.client('s3', region_name=aws_region)
         
-        # Initialize Kafka producer if bootstrap servers provided
+        # Initialize Kafka producer with IAM authentication if bootstrap servers provided
         self.kafka_producer = None
         if kafka_bootstrap:
-            self.kafka_producer = KafkaProducer(
-                bootstrap_servers=kafka_bootstrap,
-                value_serializer=lambda v: json.dumps(v).encode('utf-8')
-            )
+            try:
+                token_provider = MSKTokenProvider(aws_region)
+                
+                self.kafka_producer = KafkaProducer(
+                    bootstrap_servers=kafka_bootstrap,
+                    security_protocol='SASL_SSL',
+                    sasl_mechanism='OAUTHBEARER',
+                    sasl_oauth_token_provider=token_provider,
+                    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                    # Add timeouts for better resilience
+                    request_timeout_ms=30000,
+                    metadata_max_age_ms=30000,
+                    retry_backoff_ms=1000,
+                )
+                print(f"✅ Kafka producer initialized with IAM authentication")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Kafka producer: {e}")
+                self.kafka_producer = None
         
         # Pre-defined lookup values
         self.transaction_types = ['deposit', 'withdrawal', 'transfer', 'payment', 'fee', 'interest']
@@ -49,6 +88,7 @@ class AWSFinTechDataGenerator:
         self.employment_statuses = ['employed', 'self_employed', 'unemployed', 'retired', 'student']
     
     def _random_date(self, start_date: date, end_date: date) -> date:
+        """Generate random date between start and end"""
         time_between = end_date - start_date
         days_between = time_between.days
         random_days = random.randrange(days_between)
@@ -70,7 +110,7 @@ class AWSFinTechDataGenerator:
             os.remove(temp_file)
     
     def generate_users(self, num_users: int = 10000) -> pd.DataFrame:
-        """Generate user profiles"""
+        """Generate user profiles with SCD-ready attributes"""
         users = []
         base_date = date(2020, 1, 1)
         end_date = date(2024, 12, 31)
@@ -98,20 +138,25 @@ class AWSFinTechDataGenerator:
         return pd.DataFrame(users)
     
     def generate_statements(self, users_df: pd.DataFrame, months_per_user: int = 24) -> pd.DataFrame:
-        """Generate monthly statements"""
+        """Generate monthly credit card statements"""
         statements = []
         end_date = date(2024, 12, 31)
         
         for _, user in users_df.iterrows():
             user_id = user['user_id']
             created_at = user['created_at']
+            
+            # First statement is 30 days after creation
             first_statement = created_at + timedelta(days=30)
             
+            # Generate statements monthly
             current_date = first_statement
             while current_date <= end_date:
+                # Users who churned stop getting statements
                 if not user['is_active'] and current_date > user['updated_at'] + timedelta(days=90):
                     break
                 
+                # Random statement amount
                 balance_factor = (user['credit_score'] - 300) / 550
                 balance = round(random.uniform(0, user['credit_limit']) * (0.3 + 0.5 * balance_factor), 2)
                 min_payment = round(balance * random.uniform(0.02, 0.05), 2)
@@ -127,7 +172,7 @@ class AWSFinTechDataGenerator:
                     'total_payments': round(random.uniform(0, balance * 0.5), 2),
                 })
                 
-                # Move to next month
+                # Move to next month safely
                 if current_date.month == 12:
                     current_date = current_date.replace(year=current_date.year + 1, month=1)
                 else:
@@ -136,10 +181,11 @@ class AWSFinTechDataGenerator:
         return pd.DataFrame(statements)
     
     def generate_payments(self, statements_df: pd.DataFrame) -> pd.DataFrame:
-        """Generate payments with delinquent behavior"""
+        """Generate payments against statements with delinquent behavior"""
         payments = []
         
         for _, stmt in statements_df.iterrows():
+            # Probability of payment decreases with balance
             if stmt['balance'] > 5000:
                 p_pay = 0.65
             elif stmt['balance'] > 1000:
@@ -147,6 +193,7 @@ class AWSFinTechDataGenerator:
             else:
                 p_pay = 0.92
             
+            # Delinquent users (~12%)
             is_delinquent_user = random.random() < 0.12
             if is_delinquent_user:
                 p_pay = 0.35
@@ -197,6 +244,7 @@ class AWSFinTechDataGenerator:
                 'timestamp': datetime.combine(event_date, datetime.min.time()),
                 'is_foreign_transaction': random.random() < 0.06,
                 'is_fraud_predicted': random.random() < 0.02,
+                'device_id': f"dev_{uuid.uuid4().hex[:8]}",
             })
         
         return pd.DataFrame(transactions)
@@ -296,9 +344,12 @@ class AWSFinTechDataGenerator:
                 'sequence': i
             }
             
-            self.kafka_producer.send(topic, value=event)
-            if i % 100 == 0:
-                print(f"   Sent {i} events...")
+            try:
+                self.kafka_producer.send(topic, value=event)
+                if i % 100 == 0:
+                    print(f"   Sent {i} events...")
+            except Exception as e:
+                print(f"   ⚠️ Failed to send event {i}: {e}")
         
         self.kafka_producer.flush()
         print(f"✅ Sent {num_events:,} events to {topic}")
@@ -325,8 +376,12 @@ if __name__ == "__main__":
     generator.upload_to_s3(args.s3_prefix)
     
     # Stream events to MSK (if bootstrap provided)
-    if args.kafka_bootstrap:
+    if args.kafka_bootstrap and generator.kafka_producer:
         generator.stream_to_kafka(
             num_events=args.stream_count,
             topic=args.kafka_topic
         )
+    elif args.kafka_bootstrap and not generator.kafka_producer:
+        print("⚠️ Kafka producer initialization failed. Skipping streaming.")
+    else:
+        print("ℹ️ No Kafka bootstrap provided. Skipping streaming.")
