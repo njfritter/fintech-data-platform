@@ -150,7 +150,9 @@
                 "kafka:UpdateStorage",
                 "kafka:UpdateClusterKafkaVersion",
                 "kafka:RebootBroker",
-                "kafka:TagResource"
+                "kafka:TagResource",
+                "kafka-cluster:Connect",
+                "kafka-cluster:CreateTopic"
             ],
             "Resource": "*"
         },
