@@ -10,6 +10,7 @@ import random
 import uuid
 import argparse
 from datetime import datetime, timedelta, date
+from dateutil.relativedelta import relativedelta
 import boto3
 import pandas as pd
 import numpy as np
@@ -19,12 +20,12 @@ from botocore.exceptions import ClientError
 
 # Try importing MSK IAM signer
 try:
-    from msk_iam_sasl_sign import MSKAuthTokenProvider
+    from aws_msk_iam_sasl_signer import MSKAuthTokenProvider
     MSK_SIGNER_AVAILABLE = True
 except ImportError:
     MSK_SIGNER_AVAILABLE = False
-    print("⚠️ msk-iam-sasl-signer not available. IAM authentication will fail.")
-    print("   Install with: pip install msk-iam-sasl-signer")
+    print("⚠️ aws_msk_iam_sasl_signer not available. IAM authentication will fail.")
+    print("   Install with: pip install aws-msk-iam-sasl-signer-python")
 
 # Initialize Faker
 fake = Faker()
@@ -45,7 +46,7 @@ class MSKTokenProvider:
             token, _ = MSKAuthTokenProvider.generate_auth_token(self.region)
             return token
         else:
-            raise ImportError("msk-iam-sasl-signer is not installed")
+            raise ImportError("aws_msk_iam_sasl_signer is not installed")
 
 
 class AWSFinTechDataGenerator:
@@ -172,11 +173,8 @@ class AWSFinTechDataGenerator:
                     'total_payments': round(random.uniform(0, balance * 0.5), 2),
                 })
                 
-                # Move to next month safely
-                if current_date.month == 12:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1)
+                # Move to next month safely using dateutil
+                current_date = current_date + relativedelta(months=1)
         
         return pd.DataFrame(statements)
     
