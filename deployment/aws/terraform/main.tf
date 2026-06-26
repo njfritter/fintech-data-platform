@@ -283,6 +283,8 @@ resource "aws_iam_role_policy" "mock_data_policy" {
         Effect = "Allow"
         Action = [
           "kafka-cluster:Connect",
+          "kafka-cluster:CreateTopic",
+          "kafka-cluster:DescribeCluster",
           "kafka-cluster:DescribeTopic",
           "kafka-cluster:WriteData"
         ]
@@ -379,15 +381,17 @@ resource "aws_instance" "mock_data_generator" {
   associate_public_ip_address = false
 
   user_data = base64encode(templatefile("${path.module}/user_data_mock.sh", {
-    environment     = var.environment
-    github_repo     = var.github_repo_url
-    github_branch   = var.github_branch
-    aws_region      = var.aws_region
-    s3_bucket       = aws_s3_bucket.data_lake.id
-    msk_bootstrap   = aws_msk_cluster.fintech-data-platform.bootstrap_brokers_sasl_iam
-    msk_cluster_arn = aws_msk_cluster.fintech-data-platform.arn
-    kafka_topic     = var.kafka_topic_name
-    stream_count    = 1000
+    environment              = var.environment
+    github_repo              = var.github_repo_url
+    github_branch            = var.github_branch
+    aws_region               = var.aws_region
+    s3_bucket                = aws_s3_bucket.data_lake.id
+    msk_bootstrap            = aws_msk_cluster.fintech-data-platform.bootstrap_brokers_sasl_iam
+    msk_cluster_arn          = aws_msk_cluster.fintech-data-platform.arn
+    kafka_topic              = var.kafka_topic_name
+    kafka_replication_factor = var.kafka_replication_factor
+    kafka_partition_count    = var.kafka_partition_count
+    stream_count             = 1000
   }))
 
   tags = {
