@@ -111,11 +111,12 @@ deployment/aws/
 #### Deploying via Terraform (Managed Services)
 
 ```bash
-# 1. Apply IAM permissions (see deployment/aws/iam/)
-# 2. Configure AWS credentials
+# 1. Create IAM role/user for terraform deployment
+# 2. Add IAM permissions to above role/user (see deployment/aws/iam/)
+# 3. Configure AWS credentials
 aws configure
 
-# 3. (If using MFA) Get temporary credentials via STS
+# 4. (If using MFA) Get temporary credentials via STS
 #     Replace placeholders with your account number, MFA device name, and token
 aws sts get-session-token \
   --serial-number arn:aws:iam::{YOUR-AWS-ACCOUNT-NUMBER}:mfa/{YOUR-MFA-DEVICE-NAME} \
@@ -123,22 +124,22 @@ aws sts get-session-token \
   --token-code {TOKEN-FROM-AUTHENTICATOR-APP} \
   --duration-seconds 43200
 
-# Set the returned credentials as environment variables:
+# 5. Set the returned credentials as environment variables:
 export AWS_ACCESS_KEY_ID=<AccessKeyId>
 export AWS_SECRET_ACCESS_KEY=<SecretAccessKey>
 export AWS_SESSION_TOKEN=<SessionToken>
 
-# 4. Set up S3 backend (one-time, then update backend config in versions.tf)
+# 6. Create S3 bucket for Terraform state (one-time), then paste the name in the below command
 aws s3 mb s3://your-terraform-state-bucket --region us-east-1
 
-# 5. Deploy infrastructure
+# 8. Deploy infrastructure
 cd deployment/aws/terraform
-cp terraform.tfvars.example terraform.tfvars   # Edit with your values
-terraform init
+cp terraform.tfvars.example terraform.tfvars   # Edit terraform.tfvars with your values
+terraform init -backend-config="bucket=${YOUR-TERRAFORM-STATE-BUCKET-NAME-HERE}"
 terraform plan
 terraform apply -auto-approve
 
-# 6. Get outputs
+# 9. Get outputs
 terraform output
 ```
 
