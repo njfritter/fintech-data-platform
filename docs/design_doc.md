@@ -371,7 +371,7 @@ See `docs/oncall_runbook.md` for:
 - **Product Requirements Document:** [`docs/prd.md`](./prd.md)
 - **Data definitions:** [`data_dictionary.md`](./data_dictionary.md)
 - **Production checklist:** [`production_readiness_checklist.md`](./production_readiness_checklist.md)
-- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
+- **On-call procedures:** [`oncall_runbook.md`](./oncall_runbook.md)
 **TODO: Add below documents**
 - **Schema Registry/Contracts:** `contracts/schema_registry.py`
 
