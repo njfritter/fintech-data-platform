@@ -19,5 +19,8 @@ brew install graphviz
 # Install Colima/Docker related dependencies
 brew install colima docker docker-compose
 
+# Install Terraform for AWS deployment
+brew install hashicorp/tap/terraform
+
 # Install python packages
 pipenv install --dev
