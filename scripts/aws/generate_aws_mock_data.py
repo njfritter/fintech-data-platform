@@ -286,7 +286,7 @@ class AWSFinTechDataGenerator:
         
         return pd.DataFrame(applications)
     
-    def upload_to_s3(self, output_dir: str = "bronze/"):
+    def upload_to_s3(self, output_dir: str = "bronze"):
         """Generate and upload all datasets to S3"""
         print("🚀 Generating mock fintech data for AWS deployment...")
         

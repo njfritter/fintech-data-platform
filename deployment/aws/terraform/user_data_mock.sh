@@ -87,12 +87,13 @@ pip install boto3 pandas numpy faker kafka-python pyarrow aws-msk-iam-sasl-signe
 # Run the AWS mock data generator script
 python3 scripts/aws/generate_aws_mock_data.py \
   --s3-bucket ${s3_bucket} \
-  --s3-prefix bronze/ \
+  --s3-prefix bronze \
   --kafka-bootstrap ${msk_bootstrap} \
   --kafka-topic $KAFKA_TOPIC \
   --stream-count ${stream_count} \
   --aws-region ${aws_region}
 
 # Log completion and shut down the instance
-log "Mock data generation complete. Shutting down instance."
+log "Mock data generation complete. Shutting down instance in 30 seconds..."
+sleep 30
 shutdown -h now
