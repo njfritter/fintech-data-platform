@@ -123,7 +123,7 @@ aws sts get-session-token \
   --token-code {TOKEN-FROM-AUTHENTICATOR-APP} \
   --duration-seconds 43200
 
-#     Set the returned credentials as environment variables:
+# Set the returned credentials as environment variables:
 export AWS_ACCESS_KEY_ID=<AccessKeyId>
 export AWS_SECRET_ACCESS_KEY=<SecretAccessKey>
 export AWS_SESSION_TOKEN=<SessionToken>
@@ -152,7 +152,9 @@ For a single-VM deployment running the Docker Compose stack on AWS, see [`deploy
 
 ## Generating User Data
 
-Use `scripts/generate_mock_data.py` to generate synthetic fintech data:
+### Local
+
+Use `scripts/local/generate_mock_data.py` to generate synthetic fintech data:
 
 ```bash
 # Generate data for 10,000 users (default)
@@ -166,6 +168,49 @@ pipenv run python scripts/generate_mock_data.py --stream
 
 # Generate 100,000 streaming events
 pipenv run python scripts/generate_mock_data.py --stream --stream-count 100000
+```
+
+### AWS
+
+The AWS deployment includes an EC2 instance specifically designed for mock data generation.
+
+#### Future Feature: Indefinite Data Generation
+
+**NOTE: The current user data script (at `deployment/aws/terraform/user_data_mock.sh`) has the EC2 instance shutting down after initial data generation; this will be updated in the future to run indefinitely.**
+
+Once this is implemented: to SSH onto the instance and check the status of the data generation, download the session manager plugin via [these instructions](https://docs.aws.amazon.com/systems-manager/latest/userguide/install-plugin-macos-overview.html).
+
+And then run the following commands (can grab instance ID from the AWS console):
+
+```
+aws ssm start-session --target <instance-id> --region us-east-1
+```
+
+#### Manual Mock Data Generation
+
+(If generating streaming data) Find the Cluster ARN from the MSK page in the AWS console, then run the following command to get the bootstrap brokers of your MSK cluster:
+
+```
+aws kafka get-bootstrap-brokers --cluster-arn {YOUR-CLUSTER-ARN}
+```
+
+Use `scripts/local/generate_mock_data.py` to generate synthetic data:
+
+```
+# Batch Data Only
+pipenv run python scripts/aws/generate_aws_mock_data.py \
+  --s3-bucket {YOUR-S3-BUCKET-NAME} \
+  --s3-prefix bronze/ \
+  --aws-region us-east-1
+
+# Batch and Streaming data (paste entire list of brokers returned from above command)
+pipenv run python scripts/aws/generate_aws_mock_data.py \
+  --s3-bucket {YOUR-S3-BUCKET-NAME} \
+  --s3-prefix bronze/ \
+  --kafka-bootstrap {YOUR-ENTIRE-LIST-OF-KAFKA-BROKERS} \
+  --kafka-topic fintech.events \
+  --stream-count 5000 \
+  --aws-region us-east-1
 ```
 
 ## Generating Architecture Diagrams
