@@ -36,7 +36,6 @@ fake.seed_instance(42)
 random.seed(42)
 np.random.seed(42)
 
-
 class MSKTokenProvider:
     """Token provider for IAM authentication with MSK"""
     
@@ -64,14 +63,18 @@ class AWSFinTechDataGenerator:
         self.kafka_producer = None
         if kafka_bootstrap:
             try:
-                token_provider = MSKTokenProvider(aws_region)
-                
+
+                def oauth_cb(oauth_config):
+                    auth_token, expiry_ms = MSKAuthTokenProvider.generate_auth_token(self.aws_region)
+                    # Return expiry as seconds since epoch (float)
+                    return auth_token, expiry_ms / 1000.0
+
                 # Create the producer configuration
                 producer_conf = {
                     'bootstrap.servers': kafka_bootstrap,
                     'security.protocol': 'SASL_SSL',
-                    'sasl.mechanisms': 'OAUTHBEARER',
-                    'sasl.oauthbearer.token': token_provider.token(),
+                    'sasl.mechanism': 'OAUTHBEARER',
+                    'oauth_cb': oauth_cb,
                     'client.id': socket.gethostname(),
                     # Timeouts
                     'request.timeout.ms': 60000,
@@ -83,8 +86,9 @@ class AWSFinTechDataGenerator:
                     'socket.keepalive.enable': True,
                     'enable.idempotence': True,
                 }
-                
+
                 self.kafka_producer = Producer(producer_conf)
+                self.kafka_producer.poll(0)
 
                 print(f"✅ Kafka producer initialized with IAM authentication")
             except Exception as e:
