@@ -82,7 +82,7 @@ cd fintech-data-platform
 # Create a virtual environment and install dependencies
 python3 -m venv venv
 source venv/bin/activate
-pip install boto3 pandas numpy faker kafka-python pyarrow aws-msk-iam-sasl-signer-python python-dateutil
+pip install boto3 pandas numpy faker kafka-python pyarrow aws-msk-iam-sasl-signer-python python-dateutil confluent-kafka
 
 # Run the AWS mock data generator script
 python3 scripts/aws/generate_aws_mock_data.py \
