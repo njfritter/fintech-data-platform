@@ -16,7 +16,10 @@ import pandas as pd
 import numpy as np
 from faker import Faker
 from kafka import KafkaProducer
+from confluent_kafka import Producer
 from botocore.exceptions import ClientError
+import socket
+import time
 
 # Try importing MSK IAM signer
 try:
@@ -43,7 +46,7 @@ class MSKTokenProvider:
     def token(self):
         """Generate auth token using MSK IAM signer"""
         if MSK_SIGNER_AVAILABLE:
-            token, _ = MSKAuthTokenProvider.generate_auth_token(self.region)
+            token = MSKAuthTokenProvider.generate_auth_token(self.region)
             return token
         else:
             raise ImportError("aws_msk_iam_sasl_signer is not installed")
@@ -63,17 +66,26 @@ class AWSFinTechDataGenerator:
             try:
                 token_provider = MSKTokenProvider(aws_region)
                 
-                self.kafka_producer = KafkaProducer(
-                    bootstrap_servers=kafka_bootstrap,
-                    security_protocol='SASL_SSL',
-                    sasl_mechanism='OAUTHBEARER',
-                    sasl_oauth_token_provider=token_provider,
-                    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                    # Add timeouts for better resilience
-                    request_timeout_ms=30000,
-                    metadata_max_age_ms=30000,
-                    retry_backoff_ms=1000,
-                )
+                # Create the producer configuration
+                producer_conf = {
+                    'bootstrap.servers': kafka_bootstrap,
+                    'security.protocol': 'SASL_SSL',
+                    'sasl.mechanisms': 'OAUTHBEARER',
+                    'sasl.oauthbearer.token': token_provider.token(),
+                    'client.id': socket.gethostname(),
+                    # Timeouts
+                    'request.timeout.ms': 60000,
+                    'metadata.max.age.ms': 60000,
+                    'api.version.request.timeout.ms': 60000,
+                    # Additional settings for reliability
+                    'message.send.max.retries': 5,
+                    'retry.backoff.ms': 1000,
+                    'socket.keepalive.enable': True,
+                    'enable.idempotence': True,
+                }
+                
+                self.kafka_producer = Producer(producer_conf)
+
                 print(f"✅ Kafka producer initialized with IAM authentication")
             except Exception as e:
                 print(f"⚠️ Failed to initialize Kafka producer: {e}")
@@ -327,6 +339,12 @@ class AWSFinTechDataGenerator:
         event_types = ['payment.processed', 'transaction.created', 'fraud.alert', 
                        'user.login', 'loan.application.submitted', 'card.transaction']
         
+        def delivery_callback(err, msg):
+            if err:
+                print(f"   ❌ Delivery failed: {err}")
+            # else: # Uncomment for verbose success logging
+            #     print(f"   ✅ Delivered to {msg.topic()} at offset {msg.offset()}")
+
         for i in range(num_events):
             event = {
                 'event_id': str(uuid.uuid4()),
@@ -341,14 +359,30 @@ class AWSFinTechDataGenerator:
                 },
                 'sequence': i
             }
+
+            # Convert to JSON string
+            event_str = json.dumps(event)
             
             try:
-                self.kafka_producer.send(topic, value=event)
+                # Produce the message
+                self.kafka_producer.produce(
+                    topic=topic,
+                    key=str(i).encode('utf-8'),
+                    value=event_str.encode('utf-8'),
+                    callback=delivery_callback
+                )
                 if i % 100 == 0:
+                    self.kafka_producer.flush()
                     print(f"   Sent {i} events...")
+
+                # Optional: Add a small delay to simulate real streaming
+                if interval_seconds:
+                    time.sleep(interval_seconds)
+
             except Exception as e:
                 print(f"   ⚠️ Failed to send event {i}: {e}")
         
+        # Final flush to ensure all messages are sent
         self.kafka_producer.flush()
         print(f"✅ Sent {num_events:,} events to {topic}")
 
