@@ -226,6 +226,45 @@ pipenv run python docs/diagrams/local/local_architecture_diagram.py
 pipenv run python docs/diagrams/aws/aws_architecture.py
 ```
 
+## Project Status
+
+| Capability | Status | Notes |
+|------------|--------|-------|
+| **Infrastructure** | | |
+| Local Docker Compose | 🟡 Partial | Spark, Airflow, Redpanda, MinIO, Metabase, Prometheus/Grafana; [open issue](https://github.com/njfritter/fintech-data-platform/issues/5) to fix Airflow container needs resolving |
+| AWS Terraform | ✅ Complete | VPC, MSK, EMR Serverless, Aurora, EC2 ASG, Lambda cost-optimization |
+| GCP Deployment | 🟡 Planned | Full code (Terraform, startup script, etc) to follow once AWS architecture completely built out |
+| **Data Layers** | | |
+| Bronze (raw) | ✅ Complete | Mock data generators produce bronze Parquet/CSV |
+| Silver (cleansed) | ❌ Not started | dbt transformation models needed |
+| Gold (curated) | ❌ Not started | Business-facing fact/aggregate tables needed |
+| SCD Type 2 | ⚠️ Schema defined | Data dictionary has schema; no pipeline yet |
+| **Ingestion** | | |
+| Batch (files) | ✅ Complete | Local + AWS mock data generators |
+| Streaming (Kafka) | ✅ Complete | Redpanda (local) / MSK (AWS) with IAM auth |
+| **Processing** | | |
+| Spark Batch | ⚠️ Infra provisioned | No pipeline jobs written yet |
+| Spark Streaming (RTM) | ⚠️ Infra provisioned | No streaming jobs written yet |
+| **Orchestration** | ✅ Complete | Airflow (local + AWS EC2) |
+| **Data Quality** | ❌ Not started | Great Expectations + dbt tests planned |
+| **Observability** | | |
+| Prometheus / Grafana | 🟡 Partial | Deployed; scrape configs need fixing |
+| CloudWatch Dashboard | ✅ Complete | AWS metrics dashboard |
+| PagerDuty / Slack | ❌ Not configured | |
+| OpenLineage | ❌ Not integrated | |
+| **Self-Service** | | |
+| Metabase | ✅ Complete | Deployed with PostgreSQL backend |
+| Streamlit / Feature Backfills | ❌ Not started | |
+| **Compliance** | | |
+| Audit Tables | ❌ Not started | SOX audit logging needed |
+| PII Access Logs | ❌ Not started | |
+| 7-Year Retention | ✅ Complete | S3 lifecycle policy configured |
+| **Security** | | |
+| IAM / KMS | ✅ Complete | Least-privilege policies, encryption at rest/transit |
+| Public Access Blocks | ✅ Complete | S3 bucket public access blocked |
+| Restricted Admin CIDRs | ✅ Complete | Configurable via `admin_cidr_blocks` variable |
+| **Documentation** | ✅ Complete | PRD, design doc, data dictionary, runbook, checklist |
+
 ## Documentation
 
 | Document | Description |
