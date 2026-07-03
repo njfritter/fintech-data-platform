@@ -47,11 +47,11 @@ For more business context see the associated [Product Requirements Document](./p
 
 ### 3.1 High Level Architecture Diagram
 
-![BankingBuddy Architecture](./diagrams/bankingbuddy_architecture.png)
+![BankingBuddy Architecture](./diagrams/local/bankingbuddy_architecture.png)
 
 *Figure 1: BankBuddy data platform architecture (detailed view)*
 
-![BankingBuddy Architecture Simplified](./diagrams/bankingbuddy_architecture_simplified.png)
+![BankingBuddy Architecture Simplified](./diagrams/local/bankingbuddy_architecture_simplified.png)
 
 *Figure 2: Simplified view showing core data flow*
 
@@ -69,6 +69,49 @@ For more business context see the associated [Product Requirements Document](./p
 | Self Service BI | Metabase / Streamlit | Easy onboarding for stakeholders |
 | Source OLTP | PostgreSQL | Will simulate source data |
 | Streaming Broker | Kafka (Redpanda for local) | Industry standard, lightweight local development |
+
+### 3.3 Deployment Architectures
+
+The platform supports two deployment modes, optimized for different stages of development:
+
+#### 3.3.1 Local Development Architecture (Docker Compose)
+
+![Local Architecture](./diagrams/local/bankingbuddy_architecture.png)
+
+*Figure 1: Docker Compose architecture for local development*
+
+This architecture runs entirely on a single host using containerized services. It is designed for:
+- **Development and testing** of data pipelines
+- **Local debugging** and iterative development
+- **Cost-effective learning** (runs on a laptop with 16+ GB RAM)
+
+**Key Services:** PostgreSQL (metadata + source), MinIO (S3-compatible), Redpanda (Kafka), Spark, Airflow, Metabase, Prometheus + Grafana.
+
+#### 3.3.2. Production AWS Architecture
+
+![AWS Architecture](./diagrams/aws/aws_architecture.png)
+
+*Figure 2: Cloud-native AWS architecture for production*
+
+This architecture uses AWS-managed services to achieve high scalability, reliability, and cost efficiency. It is designed for:
+- **High-volume data processing** (petabyte-scale)
+- **Real-time streaming** with MSK and EMR Serverless
+- **Production-grade security** (VPC, IAM, KMS)
+- **Cost optimization** with scheduled start/stop via EventBridge
+
+**Key Services:** MSK (Kafka), EMR Serverless (Spark), S3 Data Lake, Aurora Serverless (metadata), Airflow, Metabase.
+
+**Comparison Table:**
+
+| Layer | Local (Docker Compose) | Production (AWS) |
+|-------|------------------------|------------------|
+| **Orchestration** | Airflow (container) | Airflow (container on EC2) |
+| **Processing** | Spark (container) | EMR Serverless (managed Spark) |
+| **Storage** | MinIO + local volumes | S3 Data Lake + Delta Lake |
+| **Streaming** | Redpanda (container) | Amazon MSK (managed Kafka) |
+| **Metadata DB** | PostgreSQL (container) | Aurora Serverless v2 (managed) |
+| **Monitoring** | Prometheus + Grafana | CloudWatch + Grafana |
+| **Cost Control** | Manual start/stop | Lambda + EventBridge |
 
 ## 4. Core Design Decisions + Tradeoffs
 
@@ -328,7 +371,7 @@ See `docs/oncall_runbook.md` for:
 - **Product Requirements Document:** [`docs/prd.md`](./prd.md)
 - **Data definitions:** [`data_dictionary.md`](./data_dictionary.md)
 - **Production checklist:** [`production_readiness_checklist.md`](./production_readiness_checklist.md)
-- **On-call procedures:** [`on_call_runbook.md`](./on_call_runbook.md)
+- **On-call procedures:** [`oncall_runbook.md`](./oncall_runbook.md)
 **TODO: Add below documents**
 - **Schema Registry/Contracts:** `contracts/schema_registry.py`
 

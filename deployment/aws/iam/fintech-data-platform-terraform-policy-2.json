@@ -1,0 +1,136 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "IAMPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:GetRole",
+                "iam:UpdateRole",
+                "iam:ListRoles",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:ListAttachedRolePolicies",
+                "iam:PutRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:GetRolePolicy",
+                "iam:ListRolePolicies",
+                "iam:CreateInstanceProfile",
+                "iam:DeleteInstanceProfile",
+                "iam:GetInstanceProfile",
+                "iam:AddRoleToInstanceProfile",
+                "iam:RemoveRoleFromInstanceProfile",
+                "iam:ListInstanceProfiles",
+                "iam:CreatePolicy",
+                "iam:DeletePolicy",
+                "iam:GetPolicy",
+                "iam:ListPolicies",
+                "iam:CreatePolicyVersion",
+                "iam:DeletePolicyVersion",
+                "iam:GetPolicyVersion",
+                "iam:ListPolicyVersions",
+                "iam:SetDefaultPolicyVersion",
+                "iam:PassRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::891377165210:role/fintech-data-platform-*",
+                "arn:aws:iam::891377165210:role/aws-service-role/*",
+                "arn:aws:iam::891377165210:instance-profile/fintech-data-platform-*"
+            ]
+        },
+        {
+            "Sid": "KMSPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "kms:CreateKey",
+                "kms:ScheduleKeyDeletion",
+                "kms:DescribeKey",
+                "kms:ListKeys",
+                "kms:EnableKeyRotation",
+                "kms:GetKeyRotationStatus",
+                "kms:PutKeyPolicy",
+                "kms:GetKeyPolicy",
+                "kms:ListKeyPolicies",
+                "kms:CreateAlias",
+                "kms:DeleteAlias",
+                "kms:UpdateAlias",
+                "kms:ListAliases",
+                "kms:GenerateDataKey",
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncryptFrom",
+                "kms:ReEncryptTo",
+                "kms:CreateGrant",
+                "kms:ListGrants",
+                "kms:RevokeGrant",
+                "kms:TagResource",
+                "kms:UntagResource",
+                "kms:ListResourceTags"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "CloudWatchPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:DeleteAlarms",
+                "cloudwatch:DescribeAlarms",
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:ListMetrics",
+                "cloudwatch:PutMetricData",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:GetMetricWidgetImage",
+                "cloudwatch:PutDashboard",
+                "cloudwatch:DeleteDashboards",
+                "cloudwatch:GetDashboard",
+                "cloudwatch:ListDashboards"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "CloudWatchLogsPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:DeleteLogGroup",
+                "logs:DescribeLogGroups",
+                "logs:PutRetentionPolicy",
+                "logs:DeleteRetentionPolicy",
+                "logs:CreateLogStream",
+                "logs:DeleteLogStream",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents",
+                "logs:GetLogEvents",
+                "logs:FilterLogEvents"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SSMPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:GetParameters",
+                "ssm:GetParametersByPath",
+                "ssm:PutParameter",
+                "ssm:DeleteParameter",
+                "ssm:DescribeParameters",
+                "ssm:ListTagsForResource"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "TaggingPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "tag:GetResources",
+                "tag:TagResources",
+                "tag:UntagResources"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

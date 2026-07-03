@@ -92,13 +92,13 @@ with Diagram(
     # --------------------------------------------------------------------------
     with Cluster("Transformation & Quality", graph_attr={"bgcolor": "#FFF3E0"}):
         dbt = Dbt("dbt\nModels & Tests")
-        ge = Custom("Great Expectations\nData Quality", "./icons/ge.png")
+        ge = Custom("Great Expectations\nData Quality", "../icons/great_expectations.png")
     
     # --------------------------------------------------------------------------
     # Serving Layer
     # --------------------------------------------------------------------------
     with Cluster("Serving & Self-Service", graph_attr={"bgcolor": "#F3E8FF"}):
-        metabase = Custom("Metabase\nBI Dashboards", "./icons/metabase.png")
+        metabase = Custom("Metabase\nBI Dashboards", "../icons/metabase.png")
         streamlit = Python("Streamlit\nStakeholder UI")
         feature_lib = Python("Feature Backfill\nDS Self-Service")
     
@@ -113,9 +113,9 @@ with Diagram(
     # Consumers
     # --------------------------------------------------------------------------
     with Cluster("Data Consumers", graph_attr={"bgcolor": "#E0F2FE"}):
-        analytics = Custom("Analytics\nProduct & Marketing", "./icons/analytics.png")
-        data_science = Custom("Data Science\nML Models", "./icons/ds.png")
-        finance = Custom("Finance\nReporting & Audit", "./icons/finance.png")
+        analytics = Custom("Analytics\nProduct & Marketing", "../icons/analytics.png")
+        data_science = Custom("Data Science\nML Models", "../icons/ds.png")
+        finance = Custom("Finance\nReporting & Audit", "../icons/finance.png")
     
     # --------------------------------------------------------------------------
     # Data Flow Connections (Simplified for clarity)
@@ -204,9 +204,9 @@ with Diagram(
     serving = Python("Self-Service\nAPIs & Dashboards")
     
     consumers = [
-        Custom("Analytics", "./icons/analytics.png"),
-        Custom("Data Science", "./icons/ds.png"),
-        Custom("Finance", "./icons/finance.png")
+        Custom("Analytics", "../icons/analytics.png"),
+        Custom("Data Science", "../icons/ds.png"),
+        Custom("Finance", "../icons/finance.png")
     ]
     
     # Define the flow

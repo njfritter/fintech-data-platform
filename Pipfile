@@ -12,6 +12,8 @@ pyarrow = "*"
 faker = "*"
 python-dateutil = "*"
 awscli = "*"
+boto3 = "*"
+kafka-python = "*"
 
 [dev-packages]
 graphviz = "*"
@@ -22,6 +24,8 @@ pyarrow = "*"
 faker = "*"
 python-dateutil = "*"
 awscli = "*"
+boto3 = "*"
+kafka-python = "*"
 
 [requires]
-python_version = "3.14"
+python_version = "3.11"
