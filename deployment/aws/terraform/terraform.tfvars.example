@@ -16,3 +16,7 @@ github_branch    = "main"
 kafka_replication_factor = 3
 kafka_partition_count = 3
 kafka_topic_name="fintech.events"
+
+# Restrict access to platform UIs (SSH, Airflow, Spark, Grafana, etc.)
+# Use your office VPN or home IP CIDR for production deployments
+# admin_cidr_blocks = ["10.0.0.0/8", "203.0.113.0/24"]

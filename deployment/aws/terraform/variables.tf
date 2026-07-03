@@ -123,3 +123,9 @@ variable "kafka_topic_name" {
   type        = string
   default     = "fintech.events"
 }
+
+variable "admin_cidr_blocks" {
+  description = "CIDR blocks allowed to access platform UIs (SSH, Airflow, Spark, Grafana, etc.)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}

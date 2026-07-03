@@ -111,7 +111,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "SSH access"
   }
   
@@ -119,7 +119,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "Spark Master UI"
   }
   
@@ -127,7 +127,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 8083
     to_port     = 8083
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "Airflow UI"
   }
   
@@ -135,7 +135,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "Grafana"
   }
   
@@ -143,7 +143,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 3001
     to_port     = 3001
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "Metabase"
   }
   
@@ -151,7 +151,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 9000
     to_port     = 9000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "MinIO API"
   }
   
@@ -159,7 +159,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 9001
     to_port     = 9001
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "MinIO Console"
   }
   
@@ -167,7 +167,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.admin_cidr_blocks
     description = "Prometheus"
   }
   
@@ -221,9 +221,32 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_policy" "ec2_s3" {
+  name = "fintech-data-platform-${var.environment}-ec2-s3-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          aws_s3_bucket.data_lake.arn,
+          "${aws_s3_bucket.data_lake.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "ec2_s3" {
   role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+  policy_arn = aws_iam_policy.ec2_s3.arn
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_ecr" {
@@ -636,6 +659,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_lake" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "data_lake" {
+  bucket = aws_s3_bucket.data_lake.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "data_lake" {
   bucket = aws_s3_bucket.data_lake.id
   
@@ -643,9 +675,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "data_lake" {
     id     = "transition-to-glacier"
     status = "Enabled"
 
-    filter {
-      prefix = "" # This applies the rule to the entire bucket
-    }
+    filter {}  # Applies to entire bucket
     
     transition {
       days          = 90
