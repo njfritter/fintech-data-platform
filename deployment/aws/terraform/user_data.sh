@@ -54,6 +54,45 @@ log "Cloning Fintech Data Platform repository..."
 cd /home/ubuntu
 sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fintech-data-platform
 
+# --- Set up Airflow's DAGs folder ---
+log "Configuring Airflow DAGs folder..."
+
+# Set the environment variable in the Airflow service file
+# This ensures Airflow always uses this folder, even after reboots
+sudo mkdir -p /etc/systemd/system/airflow-webserver.service.d
+sudo tee /etc/systemd/system/airflow-webserver.service.d/override.conf > /dev/null <<EOF
+[Service]
+Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
+EOF
+
+sudo mkdir -p /etc/systemd/system/airflow-scheduler.service.d
+sudo tee /etc/systemd/system/airflow-scheduler.service.d/override.conf > /dev/null <<EOF
+[Service]
+Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
+EOF
+
+# Reload systemd and restart Airflow services
+log "Restarting Airflow services..."
+sudo systemctl daemon-reload
+sudo systemctl restart airflow-webserver
+sudo systemctl restart airflow-scheduler
+
+# Install uv + ensure it's available in the current session + install Airflow providers
+log "Installing uv (Universal Virtual Environment)..."
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+uv pip install apache-airflow-providers-amazon apache-airflow-providers-sqlite boto3
+
+# --- Validate that DAGs are visible ---
+log "Validating Airflow DAGs..."
+sleep 10  # Give Airflow time to parse DAGs
+airflow dags list | head -10
+
+log "=========================================="
+log "Airflow DAGs folder configuration complete!"
+log "DAGs folder: /home/ubuntu/fintech-data-platform/dags"
+log "=========================================="
+
 # Set up CloudWatch Agent config
 cat > /opt/aws/amazon-cloudwatch-agent/etc/config.json << 'EOF'
 {
@@ -73,6 +112,8 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/config.json << 'EOF'
 EOF
 
 systemctl restart amazon-cloudwatch-agent
+
+echo "export EMR_SERVERLESS_APP_ID=${aws_emrserverless_application_spark_id}" >> /etc/environment
 
 log "Fintech Data Platform setup complete at $(date)"
 log "=========================================="

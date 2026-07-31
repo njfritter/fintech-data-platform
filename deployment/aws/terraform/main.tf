@@ -632,6 +632,23 @@ resource "aws_emrserverless_application" "spark" {
   }
 }
 
+resource "aws_iam_role" "emr_job_role" {
+  name = "emr-serverless-job-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "emr-serverless.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
 # -----------------------------------------------------------------------------
 # S3 Buckets for Data Lake
 # -----------------------------------------------------------------------------
