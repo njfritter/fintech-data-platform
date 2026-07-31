@@ -55,34 +55,78 @@ log "Cloning Fintech Data Platform repository..."
 cd /home/ubuntu
 sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fintech-data-platform
 
-# --- Set up Airflow's DAGs folder ---
-log "Configuring Airflow DAGs folder..."
-
-# Set the environment variable in the Airflow service file
-# This ensures Airflow always uses this folder, even after reboots
-sudo mkdir -p /etc/systemd/system/airflow-webserver.service.d
-sudo tee /etc/systemd/system/airflow-webserver.service.d/override.conf > /dev/null <<EOF
-[Service]
-Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
-EOF
-
-sudo mkdir -p /etc/systemd/system/airflow-scheduler.service.d
-sudo tee /etc/systemd/system/airflow-scheduler.service.d/override.conf > /dev/null <<EOF
-[Service]
-Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
-EOF
-
-# Reload systemd and restart Airflow services
-log "Restarting Airflow services..."
-sudo systemctl daemon-reload
-sudo systemctl restart airflow-webserver
-sudo systemctl restart airflow-scheduler
+log "Installing Airflow, setting DAGS folder and setting up systemd services..."
 
 # Install uv + ensure it's available in the current session + install Airflow providers
 log "Installing uv (Universal Virtual Environment)..."
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
-uv pip install apache-airflow-providers-amazon apache-airflow-providers-sqlite boto3
+source /root/.local/bin/env
+uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite boto3
+
+# Create Airflow directories
+mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
+export AIRFLOW_HOME=/home/ubuntu/airflow
+
+# Initialize the Airflow database
+airflow db init
+
+# Create an admin user (non-interactive)
+airflow users create \
+  --username admin \
+  --password admin \
+  --firstname Admin \
+  --lastname User \
+  --role Admin \
+  --email admin@example.com
+
+# Create the systemd service file for Airflow webserver
+sudo tee /etc/systemd/system/airflow-webserver.service > /dev/null <<EOF
+[Unit]
+Description=Airflow webserver daemon
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=ubuntu
+Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
+Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
+ExecStart=/usr/local/bin/airflow webserver
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Create the systemd service file for Airflow scheduler
+sudo tee /etc/systemd/system/airflow-scheduler.service > /dev/null <<EOF
+[Unit]
+Description=Airflow scheduler daemon
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=ubuntu
+Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
+Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
+ExecStart=/usr/local/bin/airflow scheduler
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable the services to start on boot
+sudo systemctl enable airflow-webserver.service
+sudo systemctl enable airflow-scheduler.service
+
+# Now we can safely restart them
+log "Restarting Airflow services..."
+sudo systemctl daemon-reload
+sudo systemctl restart airflow-webserver
+sudo systemctl restart airflow-scheduler
 
 # --- Validate that DAGs are visible ---
 log "Validating Airflow DAGs..."
