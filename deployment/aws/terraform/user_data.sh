@@ -14,11 +14,12 @@ log "=========================================="
 ENVIRONMENT="${environment}"
 GITHUB_REPO="${github_repo}"
 GITHUB_BRANCH="${github_branch}"
+AWS_EMRSERVERLESS_APPLICATION_SPARK_ID="${aws_emrserverless_application_spark_id}"
 
 # Install Docker and dependencies
 log "Installing Docker..."
 apt-get update -y
-apt-get install -y ca-certificates curl gnupg lsb-release git jq htop
+apt-get install -y ca-certificates curl gnupg lsb-release git jq htop unzip
 
 # Add Docker's official GPG key
 install -m 0755 -d /etc/apt/keyrings
@@ -113,7 +114,7 @@ EOF
 
 systemctl restart amazon-cloudwatch-agent
 
-echo "export EMR_SERVERLESS_APP_ID=${aws_emrserverless_application_spark_id}" >> /etc/environment
+echo "export EMR_SERVERLESS_APP_ID=$AWS_EMRSERVERLESS_APPLICATION_SPARK_ID" >> /etc/environment
 
 log "Fintech Data Platform setup complete at $(date)"
 log "=========================================="
