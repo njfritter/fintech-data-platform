@@ -129,3 +129,9 @@ variable "admin_cidr_blocks" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "sql_path" {
+  description = "Path to SQL files within fintech-data-platform repository"
+  type        = string
+  default     = "~/workspace/fintech-data-platform/sql"
+}

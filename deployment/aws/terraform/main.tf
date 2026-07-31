@@ -371,6 +371,7 @@ resource "aws_launch_template" "fintech-data-platform" {
     github_repo    = var.github_repo_url
     github_branch  = var.github_branch
     admin_password = random_password.airflow_admin.result
+    aws_emrserverless_application_spark_id = aws_emrserverless_application.spark.id
   }))
   
   monitoring {
@@ -699,6 +700,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "data_lake" {
 
 resource "aws_s3_bucket" "emr_logs" {
   bucket = "fintech-data-platform-${var.environment}-emr-logs-${data.aws_caller_identity.current.account_id}"
+}
+
+# -----------------------------------------------------------------------------
+# SQL Files in Data Lake Bucket
+# -----------------------------------------------------------------------------
+
+resource "aws_s3_object" "bronze_layer_ddl" {
+  bucket  = aws_s3_bucket.data_lake.bucket
+  key     = "scripts/sql/create_bronze_database.sql"
+  content = templatefile("${var.sql_path}/bronze/create_bronze_database.sql.tpl", {
+    s3_bucket = aws_s3_bucket.data_lake.bucket
+  })
+  content_type = "text/sql"
 }
 
 # -----------------------------------------------------------------------------
