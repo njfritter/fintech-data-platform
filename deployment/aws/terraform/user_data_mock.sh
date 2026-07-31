@@ -81,6 +81,7 @@ sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fintech-data-p
 # Install uv + ensure it's available in the current session + sync with existing virtual environment
 log "Installing uv (Universal Virtual Environment)..."
 curl -LsSf https://astral.sh/uv/install.sh | sh
+source /root/.local/bin/env
 export PATH="$HOME/.local/bin:$PATH"
 cd /home/ubuntu/fintech-data-platform
 uv venv
