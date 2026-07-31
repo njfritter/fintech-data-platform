@@ -35,9 +35,9 @@ aws --version
 # Install Kafka tools (using version 3.9.2)
 log "Installing Kafka tools..."
 cd /opt
-wget https://downloads.apache.org/kafka/3.9.2/kafka_2.13-3.9.2.tgz -O /tmp/kafka.tgz
+wget https://downloads.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz -O /tmp/kafka.tgz
 tar -xzf /tmp/kafka.tgz -C /opt/
-mv /opt/kafka_2.13-3.9.2 /opt/kafka
+mv /opt/kafka_2.13-4.3.1 /opt/kafka
 export PATH=$PATH:/opt/kafka/bin
 
 # Download AWS MSK IAM JAR (for IAM authentication)
