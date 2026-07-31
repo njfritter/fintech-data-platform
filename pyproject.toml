@@ -1,0 +1,14 @@
+[project]
+name = "fintech-data-platform"
+version = "1"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "aws-msk-iam-sasl-signer-python>=1.0.2",
+    "confluent-kafka>=2.15.0",
+    "faker>=40.36.0",
+    "kafka-python>=3.0.9",
+    "numpy>=2.4.6",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.0",
+    "python-dateutil>=2.9.0.post0",
+]

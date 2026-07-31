@@ -77,15 +77,18 @@ kafka-topics.sh --bootstrap-server $BOOTSTRAP \
 # Clone the repository (or copy the script)
 cd /home/ubuntu
 sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fintech-data-platform
-cd fintech-data-platform
 
-# Create a virtual environment and install dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install boto3 pandas numpy faker kafka-python pyarrow aws-msk-iam-sasl-signer-python python-dateutil confluent-kafka
+# Install uv + ensure it's available in the current session + sync with existing virtual environment
+log "Installing uv (Universal Virtual Environment)..."
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+cd /home/ubuntu/fintech-data-platform
+uv venv
+source .venv/bin/activate
+uv sync
 
 # Run the AWS mock data generator script
-python3 scripts/aws/generate_aws_mock_data.py \
+uv run python scripts/aws/generate_aws_mock_data.py \
   --s3-bucket ${s3_bucket} \
   --s3-prefix bronze \
   --kafka-bootstrap ${msk_bootstrap} \
