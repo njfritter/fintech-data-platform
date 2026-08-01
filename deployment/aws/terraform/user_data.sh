@@ -70,6 +70,9 @@ uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-pro
 mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
 export AIRFLOW_HOME=/home/ubuntu/airflow
 
+# Set FabAuthManager as the auth manager for Airflow before any airflow commands
+export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
+
 # Migrate the Airflow database
 airflow db migrate
 
