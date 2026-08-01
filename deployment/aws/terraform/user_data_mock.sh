@@ -18,6 +18,7 @@ KAFKA_TOPIC="${kafka_topic}"
 MSK_CLUSTER_ARN="${msk_cluster_arn}"
 KAFKA_REPLICATION_FACTOR="${kafka_replication_factor}"
 KAFKA_PARTITIONS_COUNT="${kafka_partition_count}"
+STREAM_COUNT="${stream_count}"
 
 # Update and install dependencies
 apt-get update -y
@@ -94,7 +95,7 @@ uv run python scripts/aws/generate_aws_mock_data.py \
   --s3-prefix bronze \
   --kafka-bootstrap ${msk_bootstrap} \
   --kafka-topic $KAFKA_TOPIC \
-  --stream-count ${stream_count} \
+  --stream-count $STREAM_COUNT \
   --aws-region ${aws_region}
 
 # Log completion and shut down the instance

@@ -416,7 +416,7 @@ resource "aws_instance" "mock_data_generator" {
     kafka_topic              = var.kafka_topic_name
     kafka_replication_factor = var.kafka_replication_factor
     kafka_partition_count    = var.kafka_partition_count
-    stream_count             = 1000
+    stream_count             = var.stream_count
   }))
 
   tags = {
@@ -743,15 +743,14 @@ resource "aws_db_subnet_group" "aurora" {
 }
 
 resource "aws_rds_cluster" "aurora" {
-  cluster_identifier = "fintech-data-platform-${var.environment}-aurora"
-  engine             = "aurora-postgresql"
-  engine_version     = "15.2"
-  
-  database_name           = "airflow"
-  master_username         = "admin"
-  master_password         = random_password.rds_master.result
-  backup_retention_period = 30
-  preferred_backup_window = "03:00-05:00"
+  cluster_identifier        = "fintech-data-platform-${var.environment}-aurora"
+  engine                    = "aurora-postgresql"
+  availability_zones        = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  database_name             = "airflow"
+  master_username           = "airflow_admin"
+  master_password           = random_password.rds_master.result
+  backup_retention_period   = 30
+  preferred_backup_window   = "03:00-05:00"
   
   vpc_security_group_ids = [aws_security_group.aurora.id]
   db_subnet_group_name   = aws_db_subnet_group.aurora.name
