@@ -77,12 +77,15 @@ class AWSFinTechDataGenerator:
                     'oauth_cb': oauth_cb,
                     'client.id': socket.gethostname(),
                     # Timeouts
-                    'request.timeout.ms': 60000,
-                    'metadata.max.age.ms': 60000,
-                    'api.version.request.timeout.ms': 60000,
+                    'request.timeout.ms': 120000,
+                    'metadata.max.age.ms': 120000,
+                    'api.version.request.timeout.ms': 120000,
                     # Additional settings for reliability
-                    'message.send.max.retries': 5,
-                    'retry.backoff.ms': 1000,
+                    'message.send.max.retries': 10,
+                    'retry.backoff.ms': 5000,
+                    'socket.timeout.ms': 120000,
+                    'delivery.timeout.ms': 120000,
+                    'transaction.timeout.ms': 120000,
                     'socket.keepalive.enable': True,
                     'enable.idempotence': True,
                 }
