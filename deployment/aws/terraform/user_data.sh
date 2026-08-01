@@ -64,7 +64,7 @@ export PATH="$HOME/.local/bin:$PATH"
 source /root/.local/bin/env
 uv venv
 source .venv/bin/activate
-uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite apache-airflow-providers-fab boto3
+uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite "apache-airflow-providers-fab>=2.0.0" boto3
 
 # Create Airflow directories
 mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
