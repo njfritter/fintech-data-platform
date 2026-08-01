@@ -64,7 +64,7 @@ export PATH="$HOME/.local/bin:$PATH"
 source /root/.local/bin/env
 uv venv
 source .venv/bin/activate
-uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite boto3
+uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite apache-airflow-providers-fab boto3
 
 # Create Airflow directories
 mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
@@ -100,6 +100,7 @@ Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
 Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@localhost:5432/airflow"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__API__PORT=8793"
+Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/usr/local/bin/airflow api-server
 Restart=always
 RestartSec=5
@@ -120,6 +121,7 @@ User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
+Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/usr/local/bin/airflow scheduler
 Restart=always
 RestartSec=5
@@ -139,6 +141,7 @@ Wants=postgresql.service
 User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
+Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/usr/local/bin/airflow dag-processor
 Restart=always
 RestartSec=5
@@ -146,6 +149,15 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# Create an admin user (non-interactive)
+airflow users create \
+  --username admin \
+  --password admin \
+  --firstname Admin \
+  --lastname User \
+  --role Admin \
+  --email admin@example.com
 
 # Enable the services to start on boot
 sudo systemctl enable airflow-api-server.service airflow-scheduler.service airflow-dag-processor.service
