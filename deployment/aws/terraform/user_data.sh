@@ -74,7 +74,7 @@ export AIRFLOW_HOME=/home/ubuntu/airflow
 airflow db migrate
 
 # Create an admin user (non-interactive)
-airflow users create \
+airflow aws-auth-manager users create \
   --username admin \
   --password admin \
   --firstname Admin \
