@@ -744,8 +744,8 @@ resource "aws_db_subnet_group" "aurora" {
 
 resource "aws_rds_cluster" "aurora" {
   cluster_identifier = "fintech-data-platform-${var.environment}-aurora"
-  engine             = "aurora-mysql"
-  engine_version     = "8.0.mysql_aurora.3.04.0"
+  engine             = "aurora-postgresql"
+  engine_version     = "15.2"
   
   database_name           = "airflow"
   master_username         = "admin"
