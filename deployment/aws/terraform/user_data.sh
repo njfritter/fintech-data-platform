@@ -62,6 +62,8 @@ log "Installing uv (Universal Virtual Environment)..."
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 source /root/.local/bin/env
+uv venv
+source .venv/bin/activate
 uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite boto3
 
 # Create Airflow directories
