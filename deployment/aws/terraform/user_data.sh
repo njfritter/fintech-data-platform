@@ -73,15 +73,6 @@ export AIRFLOW_HOME=/home/ubuntu/airflow
 # Migrate the Airflow database
 airflow db migrate
 
-# Create an admin user (non-interactive)
-airflow aws-auth-manager users create \
-  --username admin \
-  --password admin \
-  --firstname Admin \
-  --lastname User \
-  --role Admin \
-  --email admin@example.com
-
 # --- Generate a secure random secret key for Airflow API ---
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 log "Generated Airflow API secret key."
