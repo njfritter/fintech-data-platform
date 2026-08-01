@@ -82,7 +82,8 @@ class AWSFinTechDataGenerator:
                     'api.version.request.timeout.ms': 120000,
                     # Additional settings for reliability
                     'message.send.max.retries': 10,
-                    'retry.backoff.ms': 5000,
+                    'retry.backoff.ms': 15000,
+                    'retry.backoff.max.ms': 30000,
                     'socket.timeout.ms': 120000,
                     'delivery.timeout.ms': 120000,
                     'transaction.timeout.ms': 120000,
