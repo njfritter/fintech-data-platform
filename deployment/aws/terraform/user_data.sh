@@ -119,7 +119,7 @@ Wants=postgresql.service
 User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
-Environment="AIRFLOW__API__SECRET_KEY=${SECRET_KEY}"
+Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 ExecStart=/usr/local/bin/airflow scheduler
 Restart=always
 RestartSec=5
@@ -138,7 +138,7 @@ Wants=postgresql.service
 [Service]
 User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
-Environment="AIRFLOW__API__SECRET_KEY=${SECRET_KEY}"
+Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 ExecStart=/usr/local/bin/airflow dag-processor
 Restart=always
 RestartSec=5
