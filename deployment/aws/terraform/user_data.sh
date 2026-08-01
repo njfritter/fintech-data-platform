@@ -64,7 +64,7 @@ export PATH="$HOME/.local/bin:$PATH"
 source /root/.local/bin/env
 uv venv
 source .venv/bin/activate
-uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite "apache-airflow-providers-fab>=2.0.0" boto3
+uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite "apache-airflow-providers-fab>=2.0.0" boto3 psycopg2-binary
 
 # Create Airflow directories
 mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
@@ -95,7 +95,7 @@ Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:a
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__API__PORT=8793"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
-ExecStart=/usr/local/bin/airflow api-server
+ExecStart=/home/ubuntu/.venv/bin/airflow api-server
 Restart=always
 RestartSec=5
 
@@ -116,7 +116,7 @@ Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
-ExecStart=/usr/local/bin/airflow scheduler
+ExecStart=/home/ubuntu/.venv/bin/airflow scheduler
 Restart=always
 RestartSec=5
 
@@ -136,7 +136,7 @@ User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
-ExecStart=/usr/local/bin/airflow dag-processor
+ExecStart=/home/ubuntu/.venv/bin/airflow dag-processor
 Restart=always
 RestartSec=5
 
