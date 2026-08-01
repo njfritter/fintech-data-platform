@@ -70,8 +70,8 @@ uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-pro
 mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
 export AIRFLOW_HOME=/home/ubuntu/airflow
 
-# Initialize the Airflow database
-airflow db init
+# Migrate the Airflow database
+airflow db migrate
 
 # Create an admin user (non-interactive)
 airflow users create \
@@ -82,18 +82,25 @@ airflow users create \
   --role Admin \
   --email admin@example.com
 
-# Create the systemd service file for Airflow webserver
-sudo tee /etc/systemd/system/airflow-webserver.service > /dev/null <<EOF
+# --- Generate a secure random secret key for Airflow API ---
+SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+log "Generated Airflow API secret key."
+
+# Create the systemd service file for Airflow API server (formerly webserver)
+sudo tee /etc/systemd/system/airflow-api-server.service > /dev/null <<EOF
 [Unit]
-Description=Airflow webserver daemon
+Description=Airflow API server daemon
 After=network.target postgresql.service
 Wants=postgresql.service
 
 [Service]
 User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
-Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
-ExecStart=/usr/local/bin/airflow webserver
+Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
+Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@localhost:5432/airflow"
+Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
+Environment="AIRFLOW__API__PORT=8793"
+ExecStart=/usr/local/bin/airflow api-server
 Restart=always
 RestartSec=5
 
@@ -112,6 +119,7 @@ Wants=postgresql.service
 User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
+Environment="AIRFLOW__API__SECRET_KEY=${SECRET_KEY}"
 ExecStart=/usr/local/bin/airflow scheduler
 Restart=always
 RestartSec=5
@@ -120,15 +128,32 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
+# Create the systemd service file for Airflow DAG processor
+sudo tee /etc/systemd/system/airflow-dag-processor.service > /dev/null <<EOF
+[Unit]
+Description=Airflow DAG Processor
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=ubuntu
+Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
+Environment="AIRFLOW__API__SECRET_KEY=${SECRET_KEY}"
+ExecStart=/usr/local/bin/airflow dag-processor
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 # Enable the services to start on boot
-sudo systemctl enable airflow-webserver.service
-sudo systemctl enable airflow-scheduler.service
+sudo systemctl enable airflow-api-server.service airflow-scheduler.service airflow-dag-processor.service
 
 # Now we can safely restart them
 log "Restarting Airflow services..."
 sudo systemctl daemon-reload
-sudo systemctl restart airflow-webserver
-sudo systemctl restart airflow-scheduler
+sudo systemctl restart airflow-api-server airflow-scheduler airflow-dag-processor
 
 # --- Validate that DAGs are visible ---
 log "Validating Airflow DAGs..."
