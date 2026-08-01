@@ -14,6 +14,8 @@ log "=========================================="
 ENVIRONMENT="${environment}"
 GITHUB_REPO="${github_repo}"
 GITHUB_BRANCH="${github_branch}"
+ADMIN_PASSWORD="${admin_password}"
+AURORA_CLUSTER_ENDPOINT="${aurora_cluster_endpoint}"
 AWS_EMRSERVERLESS_APPLICATION_SPARK_ID="${aws_emrserverless_application_spark_id}"
 
 # Install Docker and dependencies
@@ -91,7 +93,7 @@ Wants=postgresql.service
 User=ubuntu
 Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
-Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@localhost:5432/airflow"
+Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:$ADMIN_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__API__PORT=8793"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
