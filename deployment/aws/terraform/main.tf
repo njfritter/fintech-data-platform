@@ -124,8 +124,8 @@ resource "aws_security_group" "fintech-data-platform" {
   }
   
   ingress {
-    from_port   = 8083
-    to_port     = 8083
+    from_port   = 8793
+    to_port     = 8793
     protocol    = "tcp"
     cidr_blocks = var.admin_cidr_blocks
     description = "Airflow UI"
@@ -371,6 +371,7 @@ resource "aws_launch_template" "fintech-data-platform" {
     github_repo    = var.github_repo_url
     github_branch  = var.github_branch
     admin_password = random_password.airflow_admin.result
+    rds_password   = random_password.rds_master.result
     aurora_cluster_endpoint = aws_rds_cluster.aurora.endpoint
     aws_emrserverless_application_spark_id = aws_emrserverless_application.spark.id
   }))
@@ -745,19 +746,27 @@ resource "aws_db_subnet_group" "aurora" {
 resource "aws_rds_cluster" "aurora" {
   cluster_identifier        = "fintech-data-platform-${var.environment}-aurora"
   engine                    = "aurora-postgresql"
+  engine_version            = "17.7"
   availability_zones        = ["us-east-1a", "us-east-1b", "us-east-1c"]
   database_name             = "airflow"
-  master_username           = "airflow_admin"
+  master_username           = "rds_admin"
   master_password           = random_password.rds_master.result
   backup_retention_period   = 30
   preferred_backup_window   = "03:00-05:00"
   
   vpc_security_group_ids = [aws_security_group.aurora.id]
   db_subnet_group_name   = aws_db_subnet_group.aurora.name
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.aurora_ssl.name
   
   serverlessv2_scaling_configuration {
     min_capacity = 0.5
     max_capacity = 16
+  }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "30m"
   }
   
   skip_final_snapshot = var.environment != "prod"
@@ -821,6 +830,22 @@ resource "aws_security_group_rule" "aurora_allow_airflow" {
   security_group_id        = aws_security_group.aurora.id
   source_security_group_id = aws_security_group.fintech-data-platform.id
   description              = "Allow Airflow EC2 to connect to Aurora"
+}
+
+resource "aws_rds_cluster_parameter_group" "aurora_ssl" {
+  name        = "fintech-data-platform-aurora-pg-ssl"
+  family      = "aurora-postgresql17" # Must match Aurora engine version
+  description = "Enforce SSL connections for Aurora PostgreSQL"
+
+  parameter {
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"           # Requires a reboot to take effect
+  }
+
+  tags = {
+    Name = "fintech-data-platform-aurora-ssl-pg"
+  }
 }
 
 # -----------------------------------------------------------------------------

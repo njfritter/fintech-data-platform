@@ -15,6 +15,7 @@ ENVIRONMENT="${environment}"
 GITHUB_REPO="${github_repo}"
 GITHUB_BRANCH="${github_branch}"
 ADMIN_PASSWORD="${admin_password}"
+RDS_PASSWORD="${rds_password}"
 AURORA_CLUSTER_ENDPOINT="${aurora_cluster_endpoint}"
 AWS_EMRSERVERLESS_APPLICATION_SPARK_ID="${aws_emrserverless_application_spark_id}"
 
@@ -68,14 +69,65 @@ uv venv
 source .venv/bin/activate
 uv pip install apache-airflow apache-airflow-providers-amazon apache-airflow-providers-sqlite "apache-airflow-providers-fab>=2.0.0" boto3 psycopg2-binary asyncpg
 
-# Create Airflow directories
-mkdir -p /home/ubuntu/airflow/dags /home/ubuntu/airflow/logs /home/ubuntu/airflow/plugins
-export AIRFLOW_HOME=/home/ubuntu/airflow
+# Create Airflow directories in the home directory of the ubuntu user
+export UBUNTU_HOME=/home/ubuntu
+export AIRFLOW_HOME=$UBUNTU_HOME/airflow
+sudo -u ubuntu mkdir -p $AIRFLOW_HOME $AIRFLOW_HOME/dags $AIRFLOW_HOME/logs $AIRFLOW_HOME/plugins
 
-# Set FabAuthManager as the auth manager for Airflow before any airflow commands
-export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
+# Get SSL certificate for RDS/Aurora
+curl -o /home/ubuntu/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 
-# Migrate the Airflow database
+# Overwrite the default airflow.cfg with our custom configuration
+cat > $AIRFLOW_HOME/airflow.cfg <<EOF
+[core]
+dags_folder = $UBUNTU_HOME/fintech-data-platform/dags
+load_examples = False
+# Explicitly set the auth manager to FabAuthManager
+auth_manager = airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+
+[database]
+sql_alchemy_conn = postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem
+
+[celery]
+broker_url = redis://localhost:6379/0
+result_backend = db+postgresql://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow
+
+[api]
+auth_backends = airflow.api.auth.backend.basic_auth
+host = 0.0.0.0
+port = 8793
+
+[webserver]
+cookie_samesite = Lax
+cookie_secure = False
+session_lifetime_days = 30
+rbac = True
+
+[fab]
+# Flask-AppBuilder (FAB) specific settings for the UI
+# This is required for the FabAuthManager to work properly
+auth_type = AUTH_DB
+auth_role_public = Public
+auth_role_admin = Admin
+auth_role_public_remove = False
+auth_user_registration = False
+auth_user_registration_role = Public
+auth_oidc_group_field = groups
+auth_oidc_role_field = role
+
+[logging]
+logging_level = INFO
+fab_logging_level = WARNING
+
+[metrics]
+statsd_on = False
+statsd_host = localhost
+statsd_port = 8125
+statsd_prefix = airflow
+EOF
+
+# Migrate the Airflow database (needs DB environment variable set for Aurora RDS)
+export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 airflow db migrate
 
 # --- Generate a secure random secret key for Airflow API ---
@@ -91,15 +143,17 @@ Wants=postgresql.service
 
 [Service]
 User=ubuntu
-Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
-Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/fintech-data-platform/dags"
-Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:$ADMIN_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow"
+Environment="AIRFLOW_HOME=$AIRFLOW_HOME"
+Environment="AIRFLOW__CORE__DAGS_FOLDER=$UBUNTU_HOME/fintech-data-platform/dags"
+Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__API__PORT=8793"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/home/ubuntu/.venv/bin/airflow api-server
 Restart=always
 RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
@@ -114,8 +168,9 @@ Wants=postgresql.service
 
 [Service]
 User=ubuntu
-Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
-Environment="AIRFLOW__CORE__DAGS_FOLDER=/home/ubuntu/airflow/dags"
+Environment="AIRFLOW_HOME=$AIRFLOW_HOME"
+Environment="AIRFLOW__CORE__DAGS_FOLDER=$UBUNTU_HOME/fintech-data-platform/dags"
+Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/home/ubuntu/.venv/bin/airflow scheduler
@@ -135,7 +190,9 @@ Wants=postgresql.service
 
 [Service]
 User=ubuntu
-Environment="AIRFLOW_HOME=/home/ubuntu/airflow"
+Environment="AIRFLOW_HOME=$AIRFLOW_HOME"
+Environment="AIRFLOW__CORE__DAGS_FOLDER=$UBUNTU_HOME/fintech-data-platform/dags"
+Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/home/ubuntu/.venv/bin/airflow dag-processor
@@ -148,8 +205,8 @@ EOF
 
 # Create an admin user (non-interactive)
 airflow users create \
-  --username admin \
-  --password admin \
+  --username Admin \
+  --password $ADMIN_PASSWORD \
   --firstname Admin \
   --lastname User \
   --role Admin \
@@ -170,7 +227,7 @@ airflow dags list | head -10
 
 log "=========================================="
 log "Airflow DAGs folder configuration complete!"
-log "DAGs folder: /home/ubuntu/fintech-data-platform/dags"
+log "DAGs folder: $UBUNTU_HOME/fintech-data-platform/dags"
 log "=========================================="
 
 # Set up CloudWatch Agent config
