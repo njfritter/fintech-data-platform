@@ -1,7 +1,8 @@
 # This DAG creates the connection if it doesn't exist
-from airflow import DAG, settings
+from airflow import settings
 from airflow.models import Connection
 from airflow.operators.python import PythonOperator
+from airflow.sdk import dag
 from datetime import datetime
 
 def create_emr_connection():
