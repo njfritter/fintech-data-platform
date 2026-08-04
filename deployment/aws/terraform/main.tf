@@ -449,6 +449,10 @@ resource "aws_autoscaling_group" "fintech-data-platform" {
     version = "$Latest"
   }
   
+  depends_on = [
+    null_resource.wait_for_aurora
+  ]
+
   instance_refresh {
     strategy = "Rolling"
     preferences {
@@ -482,6 +486,29 @@ resource "aws_autoscaling_group" "fintech-data-platform" {
     value               = "Terraform"
     propagate_at_launch = true
   }
+}
+
+resource "null_resource" "wait_for_aurora" {
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for Aurora cluster to be fully available and ready to accept connections..."
+      while true; do
+        STATUS=$(aws rds describe-db-clusters --db-cluster-identifier ${aws_rds_cluster.aurora.id} --query 'DBClusters[0].Status' --output text)
+        if [ "$STATUS" == "available" ]; then
+          echo "Aurora cluster is available!"
+          break
+        fi
+        echo "Current status: $STATUS. Waiting..."
+        sleep 30
+      done
+    EOT
+  }
+
+  depends_on = [
+    aws_rds_cluster.aurora,
+    aws_rds_cluster_instance.aurora_writer,
+    aws_rds_cluster_instance.aurora_reader
+  ]
 }
 
 # -----------------------------------------------------------------------------
