@@ -29,13 +29,11 @@ def create_emr_connection():
         print("ℹ️ EMR Serverless connection already exists")
     session.close()
 
-with DAG(
-    'emr_serverless_connection_setup',
-    schedule_interval=None,  # Manual trigger only
-    start_date=datetime(2024, 1, 1),
-    catchup=False,
-) as dag:
-    create_conn = PythonOperator(
+@dag(start_date=datetime(2024, 1, 1), schedule=None, catchup=False)
+def emr_serverless_connection_setup():
+    PythonOperator(
         task_id='create_emr_connection',
         python_callable=create_emr_connection,
     )
+
+emr_serverless_connection_setup()
