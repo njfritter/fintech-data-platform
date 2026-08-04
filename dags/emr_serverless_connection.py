@@ -1,7 +1,7 @@
 # This DAG creates the connection if it doesn't exist
+from airflow import DAG
 from airflow.models import Connection
 from airflow.operators.python import PythonOperator
-from airflow.sdk import dag
 from airflow.hooks.base import BaseHook
 
 from datetime import datetime
@@ -36,11 +36,17 @@ def create_emr_connection():
     print(f"✅ EMR Serverless connection '{conn_id}' created successfully!")
 
 
-@dag(start_date=datetime(2024, 1, 1), schedule=None, catchup=False)
-def emr_serverless_connection_setup():
-    PythonOperator(
+with DAG(
+    'emr_serverless_connection_setup',
+    start_date=datetime(2024, 1, 1),
+    schedule=None,  # Manual trigger only
+    catchup=False,
+    tags=['setup', 'emr'],
+) as dag:
+    
+    create_conn = PythonOperator(
         task_id='create_emr_connection',
         python_callable=create_emr_connection,
     )
-
-emr_serverless_connection_setup()
+    
+    create_conn
