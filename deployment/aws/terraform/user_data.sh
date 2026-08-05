@@ -96,6 +96,7 @@ result_backend = db+postgresql://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOIN
 auth_backends = airflow.api.auth.backend.basic_auth
 host = 0.0.0.0
 port = 8793
+base_url = http://localhost:8793
 
 [webserver]
 cookie_samesite = Lax
@@ -134,6 +135,26 @@ airflow db migrate
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 log "Generated Airflow API secret key."
 
+# Create the Airflow API server wrapper script
+log "Creating Airflow API server wrapper script..."
+sudo tee /usr/local/bin/start_airflow_api.sh > /dev/null <<'EOF'
+#!/bin/bash
+set -e
+
+# Kill any process using port 8793
+echo "Cleaning up port 8793..."
+sudo fuser -k 8793/tcp 2>/dev/null || true
+
+# Sleep a moment to allow the port to be released
+sleep 2
+
+# Start the actual Airflow API server
+exec /home/ubuntu/.venv/bin/airflow api-server
+EOF
+
+# Make the wrapper script executable
+sudo chmod +x /usr/local/bin/start_airflow_api.sh
+
 # Create the systemd service file for Airflow API server (formerly webserver)
 sudo tee /etc/systemd/system/airflow-api-server.service > /dev/null <<EOF
 [Unit]
@@ -149,7 +170,7 @@ Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin
 Environment="AIRFLOW__API__SECRET_KEY=$SECRET_KEY"
 Environment="AIRFLOW__API__PORT=8793"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
-ExecStart=/home/ubuntu/.venv/bin/airflow api-server
+ExecStart=/usr/local/bin/start_airflow_api.sh
 Restart=always
 RestartSec=5
 KillMode=mixed
