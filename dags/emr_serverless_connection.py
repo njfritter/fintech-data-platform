@@ -1,5 +1,6 @@
 # This DAG creates the connection if it doesn't exist
 from airflow import DAG
+from airflow.exceptions import AirflowNotFoundException
 from airflow.models import Connection
 from airflow.operators.python import PythonOperator
 from airflow.hooks.base import BaseHook
@@ -11,12 +12,12 @@ def create_emr_connection():
     """Create EMR Serverless connection in Airflow metadata DB"""
     conn_id = 'emr_serverless_default'
     
-    # Check if connection already exists
     try:
+        # Try to get the connection - this will raise AirflowNotFoundException if it doesn't exist
         existing_conn = BaseHook.get_connection(conn_id)
         print(f"ℹ️ Connection '{conn_id}' already exists. Skipping creation.")
         return
-    except Exception:
+    except AirflowNotFoundException:
         print(f"🔄 Connection '{conn_id}' not found. Creating it now...")
     
     # Create the connection
@@ -29,11 +30,16 @@ def create_emr_connection():
         })
     )
     
-    # Save the connection
-    session = BaseHook.get_connections(conn_id).session
-    session.add(conn)
-    session.commit()
-    print(f"✅ EMR Serverless connection '{conn_id}' created successfully!")
+    # Add and commit the connection
+    try:
+        session = BaseHook.get_hook().get_session()
+        session.add(conn)
+        session.commit()
+        print(f"✅ EMR Serverless connection '{conn_id}' created successfully!")
+    except Exception as e:
+        print(f"❌ Failed to create connection: {e}")
+        session.rollback()
+        raise
 
 
 with DAG(
