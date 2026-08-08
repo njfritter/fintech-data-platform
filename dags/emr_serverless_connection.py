@@ -32,7 +32,7 @@ def create_emr_connection():
     
     # Add and commit the connection
     try:
-        session = BaseHook.get_hook().get_session()
+        session = BaseHook.get_hook(conn_id).get_session()
         session.add(conn)
         session.commit()
         print(f"✅ EMR Serverless connection '{conn_id}' created successfully!")
