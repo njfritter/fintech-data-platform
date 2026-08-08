@@ -77,12 +77,16 @@ class AWSFinTechDataGenerator:
                     'oauth_cb': oauth_cb,
                     'client.id': socket.gethostname(),
                     # Timeouts
-                    'request.timeout.ms': 60000,
-                    'metadata.max.age.ms': 60000,
-                    'api.version.request.timeout.ms': 60000,
+                    'request.timeout.ms': 120000,
+                    'metadata.max.age.ms': 120000,
+                    'api.version.request.timeout.ms': 120000,
                     # Additional settings for reliability
-                    'message.send.max.retries': 5,
-                    'retry.backoff.ms': 1000,
+                    'message.send.max.retries': 10,
+                    'retry.backoff.ms': 15000,
+                    'retry.backoff.max.ms': 30000,
+                    'socket.timeout.ms': 120000,
+                    'delivery.timeout.ms': 120000,
+                    'transaction.timeout.ms': 120000,
                     'socket.keepalive.enable': True,
                     'enable.idempotence': True,
                 }
@@ -306,6 +310,9 @@ class AWSFinTechDataGenerator:
         """Generate and upload all datasets to S3"""
         print("🚀 Generating mock fintech data for AWS deployment...")
         
+        # Get current date (will be used to partition data in subfolders))
+        current_date = str(date.today())
+
         # Generate datasets
         users_df = self.generate_users(num_users=10000)
         print(f"   ✅ Generated {len(users_df):,} users")
@@ -323,12 +330,12 @@ class AWSFinTechDataGenerator:
         print(f"   ✅ Generated {len(loan_apps_df):,} loan applications")
         
         # Upload to S3
-        print(f"\n📤 Uploading to s3://{self.s3_bucket}/{output_dir}")
-        self._upload_parquet_to_s3(users_df, f"{output_dir}/users.parquet")
-        self._upload_parquet_to_s3(statements_df, f"{output_dir}/statements.parquet")
-        self._upload_parquet_to_s3(payments_df, f"{output_dir}/payments.parquet")
-        self._upload_parquet_to_s3(transactions_df, f"{output_dir}/transactions.parquet")
-        self._upload_parquet_to_s3(loan_apps_df, f"{output_dir}/loan_applications.parquet")
+        print(f"\n📤 Uploading to s3://{self.s3_bucket}/{output_dir}/{current_date}")
+        self._upload_parquet_to_s3(users_df, f"{output_dir}/{current_date}/users.parquet")
+        self._upload_parquet_to_s3(statements_df, f"{output_dir}/{current_date}/statements.parquet")
+        self._upload_parquet_to_s3(payments_df, f"{output_dir}/{current_date}/payments.parquet")
+        self._upload_parquet_to_s3(transactions_df, f"{output_dir}/{current_date}/transactions.parquet")
+        self._upload_parquet_to_s3(loan_apps_df, f"{output_dir}/{current_date}/loan_applications.parquet")
         
         print("\n✅ All data uploaded to S3!")
     

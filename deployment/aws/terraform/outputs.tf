@@ -34,3 +34,8 @@ output "mock_data_generator_private_ip" {
   description = "Private IP of the mock data generator EC2 instance"
   value       = aws_instance.mock_data_generator.private_ip
 }
+
+output "rds_master_password" {
+  value     = random_password.rds_master.result
+  sensitive = true
+}

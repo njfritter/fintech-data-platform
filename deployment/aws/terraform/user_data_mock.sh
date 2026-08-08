@@ -18,6 +18,7 @@ KAFKA_TOPIC="${kafka_topic}"
 MSK_CLUSTER_ARN="${msk_cluster_arn}"
 KAFKA_REPLICATION_FACTOR="${kafka_replication_factor}"
 KAFKA_PARTITIONS_COUNT="${kafka_partition_count}"
+STREAM_COUNT="${stream_count}"
 
 # Update and install dependencies
 apt-get update -y
@@ -35,9 +36,9 @@ aws --version
 # Install Kafka tools (using version 3.9.2)
 log "Installing Kafka tools..."
 cd /opt
-wget https://downloads.apache.org/kafka/3.9.2/kafka_2.13-3.9.2.tgz -O /tmp/kafka.tgz
+wget https://downloads.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz -O /tmp/kafka.tgz
 tar -xzf /tmp/kafka.tgz -C /opt/
-mv /opt/kafka_2.13-3.9.2 /opt/kafka
+mv /opt/kafka_2.13-4.3.1 /opt/kafka
 export PATH=$PATH:/opt/kafka/bin
 
 # Download AWS MSK IAM JAR (for IAM authentication)
@@ -77,20 +78,24 @@ kafka-topics.sh --bootstrap-server $BOOTSTRAP \
 # Clone the repository (or copy the script)
 cd /home/ubuntu
 sudo -u ubuntu git clone --branch "$GITHUB_BRANCH" "$GITHUB_REPO" fintech-data-platform
-cd fintech-data-platform
 
-# Create a virtual environment and install dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install boto3 pandas numpy faker kafka-python pyarrow aws-msk-iam-sasl-signer-python python-dateutil confluent-kafka
+# Install uv + ensure it's available in the current session + sync with existing virtual environment
+log "Installing uv (Universal Virtual Environment)..."
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source /root/.local/bin/env
+export PATH="$HOME/.local/bin:$PATH"
+cd /home/ubuntu/fintech-data-platform
+uv venv
+source .venv/bin/activate
+uv sync
 
 # Run the AWS mock data generator script
-python3 scripts/aws/generate_aws_mock_data.py \
+uv run python scripts/aws/generate_aws_mock_data.py \
   --s3-bucket ${s3_bucket} \
   --s3-prefix bronze \
   --kafka-bootstrap ${msk_bootstrap} \
   --kafka-topic $KAFKA_TOPIC \
-  --stream-count ${stream_count} \
+  --stream-count $STREAM_COUNT \
   --aws-region ${aws_region}
 
 # Log completion and shut down the instance

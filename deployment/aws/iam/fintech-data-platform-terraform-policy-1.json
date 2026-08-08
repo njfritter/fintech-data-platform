@@ -207,7 +207,9 @@
                 "rds:DescribeDBParameterGroups",
                 "rds:ResetDBParameterGroup",
                 "rds:DescribeDBSubnetGroups",
-                "rds:DescribeGlobalClusters"
+                "rds:DescribeGlobalClusters",
+                "rds:CreateDBClusterParameterGroup",
+                "rds:DeleteDBClusterParameterGroup"
             ],
             "Resource": "*"
         },

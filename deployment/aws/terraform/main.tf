@@ -124,8 +124,8 @@ resource "aws_security_group" "fintech-data-platform" {
   }
   
   ingress {
-    from_port   = 8083
-    to_port     = 8083
+    from_port   = 8793
+    to_port     = 8793
     protocol    = "tcp"
     cidr_blocks = var.admin_cidr_blocks
     description = "Airflow UI"
@@ -371,6 +371,9 @@ resource "aws_launch_template" "fintech-data-platform" {
     github_repo    = var.github_repo_url
     github_branch  = var.github_branch
     admin_password = random_password.airflow_admin.result
+    rds_password   = random_password.rds_master.result
+    aurora_cluster_endpoint = aws_rds_cluster.aurora.endpoint
+    aws_emrserverless_application_spark_id = aws_emrserverless_application.spark.id
   }))
   
   monitoring {
@@ -414,7 +417,7 @@ resource "aws_instance" "mock_data_generator" {
     kafka_topic              = var.kafka_topic_name
     kafka_replication_factor = var.kafka_replication_factor
     kafka_partition_count    = var.kafka_partition_count
-    stream_count             = 1000
+    stream_count             = var.stream_count
   }))
 
   tags = {
@@ -446,6 +449,10 @@ resource "aws_autoscaling_group" "fintech-data-platform" {
     version = "$Latest"
   }
   
+  depends_on = [
+    null_resource.wait_for_aurora
+  ]
+
   instance_refresh {
     strategy = "Rolling"
     preferences {
@@ -479,6 +486,29 @@ resource "aws_autoscaling_group" "fintech-data-platform" {
     value               = "Terraform"
     propagate_at_launch = true
   }
+}
+
+resource "null_resource" "wait_for_aurora" {
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for Aurora cluster to be fully available and ready to accept connections..."
+      while true; do
+        STATUS=$(aws rds describe-db-clusters --db-cluster-identifier ${aws_rds_cluster.aurora.id} --query 'DBClusters[0].Status' --output text)
+        if [ "$STATUS" == "available" ]; then
+          echo "Aurora cluster is available!"
+          break
+        fi
+        echo "Current status: $STATUS. Waiting..."
+        sleep 30
+      done
+    EOT
+  }
+
+  depends_on = [
+    aws_rds_cluster.aurora,
+    aws_rds_cluster_instance.aurora_writer,
+    aws_rds_cluster_instance.aurora_reader
+  ]
 }
 
 # -----------------------------------------------------------------------------
@@ -631,6 +661,23 @@ resource "aws_emrserverless_application" "spark" {
   }
 }
 
+resource "aws_iam_role" "emr_job_role" {
+  name = "emr-serverless-job-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "emr-serverless.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
 # -----------------------------------------------------------------------------
 # S3 Buckets for Data Lake
 # -----------------------------------------------------------------------------
@@ -702,6 +749,12 @@ resource "aws_s3_bucket" "emr_logs" {
 }
 
 # -----------------------------------------------------------------------------
+# SQL Files in Data Lake Bucket
+# -----------------------------------------------------------------------------
+
+# INSERT SQL FILES HERE
+
+# -----------------------------------------------------------------------------
 # RDS Aurora for Metadata (High-performance, scalable)
 # -----------------------------------------------------------------------------
 resource "aws_db_subnet_group" "aurora" {
@@ -711,22 +764,29 @@ resource "aws_db_subnet_group" "aurora" {
 }
 
 resource "aws_rds_cluster" "aurora" {
-  cluster_identifier = "fintech-data-platform-${var.environment}-aurora"
-  engine             = "aurora-mysql"
-  engine_version     = "8.0.mysql_aurora.3.04.0"
+  cluster_identifier        = "fintech-data-platform-${var.environment}-aurora"
+  engine                    = "aurora-postgresql"
+  engine_version            = "17.7"
+  availability_zones        = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  database_name             = "airflow"
+  master_username           = "rds_admin"
+  master_password           = random_password.rds_master.result
+  backup_retention_period   = 30
+  preferred_backup_window   = "03:00-05:00"
   
-  database_name           = "airflow"
-  master_username         = "admin"
-  master_password         = random_password.rds_master.result
-  backup_retention_period = 30
-  preferred_backup_window = "03:00-05:00"
-  
-  vpc_security_group_ids = [aws_security_group.fintech-data-platform.id]
+  vpc_security_group_ids = [aws_security_group.aurora.id]
   db_subnet_group_name   = aws_db_subnet_group.aurora.name
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.aurora_ssl.name
   
   serverlessv2_scaling_configuration {
     min_capacity = 0.5
     max_capacity = 16
+  }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "30m"
   }
   
   skip_final_snapshot = var.environment != "prod"
@@ -762,6 +822,49 @@ resource "aws_rds_cluster_instance" "aurora_reader" {
   
   tags = {
     Name = "fintech-data-platform-${var.environment}-aurora-reader"
+  }
+}
+
+resource "aws_security_group" "aurora" {
+  name_prefix = "aurora-"
+  vpc_id      = aws_vpc.main.id
+  description = "Security group for Aurora PostgreSQL cluster"
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "fintech-data-platform-aurora-${var.environment}-sg"
+  }
+}
+
+resource "aws_security_group_rule" "aurora_allow_airflow" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.aurora.id
+  source_security_group_id = aws_security_group.fintech-data-platform.id
+  description              = "Allow Airflow EC2 to connect to Aurora"
+}
+
+resource "aws_rds_cluster_parameter_group" "aurora_ssl" {
+  name        = "fintech-data-platform-aurora-pg-ssl"
+  family      = "aurora-postgresql17" # Must match Aurora engine version
+  description = "Enforce SSL connections for Aurora PostgreSQL"
+
+  parameter {
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"           # Requires a reboot to take effect
+  }
+
+  tags = {
+    Name = "fintech-data-platform-aurora-ssl-pg"
   }
 }
 

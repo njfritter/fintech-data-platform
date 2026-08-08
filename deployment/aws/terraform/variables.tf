@@ -124,8 +124,20 @@ variable "kafka_topic_name" {
   default     = "fintech.events"
 }
 
+variable "stream_count" {
+  description = "Number of events to stream"
+  type        = number
+  default     = 1000
+}
+
 variable "admin_cidr_blocks" {
   description = "CIDR blocks allowed to access platform UIs (SSH, Airflow, Spark, Grafana, etc.)"
   type        = list(string)
   default     = ["0.0.0.0/0"]
+}
+
+variable "sql_path" {
+  description = "Path to SQL files within fintech-data-platform repository"
+  type        = string
+  default     = "~/workspace/fintech-data-platform/sql"
 }
