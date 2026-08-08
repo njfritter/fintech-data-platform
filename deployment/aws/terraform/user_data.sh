@@ -77,6 +77,26 @@ sudo -u ubuntu mkdir -p $AIRFLOW_HOME $AIRFLOW_HOME/dags $AIRFLOW_HOME/logs $AIR
 # Get SSL certificate for RDS/Aurora
 curl -o /home/ubuntu/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
 
+# --- Generate a secure random secret key for Airflow API ---
+# This is a Flask secret key for signing session cookies
+API_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+log "Generated Airflow API secret key."
+
+# --- Generate a secure random secret key for Airflow API ---
+# This is used to encode and decode the JWT (JSON Web Token) used for authentication between internal components, such as the scheduler and workers
+API_JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+log "Generated Airflow API JWT secret key."
+
+# --- Generate a secure random secret key for Airflow Fernet ---
+# This is used to encrypt sensitive data in the Airflow metadata database, such as connection passwords
+FERNET_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+log "Generated Airflow Fernet key."
+
+# --- Generate a secure random secret key for Airflow internal API authentication ---
+# This is used to authenticate internal API requests between Airflow components, such as the scheduler and workers
+INTERNAL_API_AUTH_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+log "Generated Airflow internal API authentication key."
+
 # Overwrite the default airflow.cfg with our custom configuration
 cat > $AIRFLOW_HOME/airflow.cfg <<EOF
 [core]
@@ -107,6 +127,11 @@ result_backend = db+postgresql://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOIN
 auth_backends = airflow.api.auth.backend.basic_auth
 host = 0.0.0.0
 port = 8793
+
+[api_auth]
+jwt_secret = $API_JWT_SECRET_KEY
+jwt_algorithm = HS256
+access_token_expire_minutes = 30
 
 [webserver]
 cookie_samesite = Lax
@@ -141,16 +166,6 @@ EOF
 export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 airflow db migrate
 
-# --- Generate a secure random secret key for Airflow API ---
-# This is a Flask secret key for signing session cookies
-API_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-log "Generated Airflow API secret key."
-
-# --- Generate a secure random secret key for Airflow API ---
-# This is used to encode and decode the JWT (JSON Web Token) used for authentication between internal components, such as the scheduler and workers
-API_JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-log "Generated Airflow API JWT secret key."
-
 # Create the Airflow API server wrapper script
 log "Creating Airflow API server wrapper script..."
 sudo tee /usr/local/bin/start_airflow_api.sh > /dev/null <<'EOF'
@@ -184,7 +199,11 @@ Environment="AIRFLOW_HOME=$AIRFLOW_HOME"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=$UBUNTU_HOME/fintech-data-platform/dags"
 Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 Environment="AIRFLOW__API__SECRET_KEY=$API_SECRET_KEY"
-Environment="AIRFLOW__API__JWT_SECRET_KEY=$API_JWT_SECRET_KEY"
+Environment="AIRFLOW__CORE__FERNET_KEY=$FERNET_KEY"
+Environment="AIRFLOW__CORE__INTERNAL_API_SECRET_KEY=$INTERNAL_API_AUTH_KEY"
+Environment="AIRFLOW__API_AUTH__JWT_SECRET=$API_JWT_SECRET_KEY"
+Environment="AIRFLOW__API_AUTH__JWT_ALGORITHM=HS256"
+Environment="AIRFLOW__API_AUTH__ACCESS_TOKEN_EXPIRE_MINUTES=30"
 Environment="AIRFLOW__API__PORT=8793"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/usr/local/bin/start_airflow_api.sh
@@ -210,7 +229,11 @@ Environment="AIRFLOW_HOME=$AIRFLOW_HOME"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=$UBUNTU_HOME/fintech-data-platform/dags"
 Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 Environment="AIRFLOW__API__SECRET_KEY=$API_SECRET_KEY"
-Environment="AIRFLOW__API__JWT_SECRET_KEY=$API_JWT_SECRET_KEY"
+Environment="AIRFLOW__CORE__FERNET_KEY=$FERNET_KEY"
+Environment="AIRFLOW__CORE__INTERNAL_API_SECRET_KEY=$INTERNAL_API_AUTH_KEY"
+Environment="AIRFLOW__API_AUTH__JWT_SECRET=$API_JWT_SECRET_KEY"
+Environment="AIRFLOW__API_AUTH__JWT_ALGORITHM=HS256"
+Environment="AIRFLOW__API_AUTH__ACCESS_TOKEN_EXPIRE_MINUTES=30"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/home/ubuntu/.venv/bin/airflow scheduler
 Restart=always
@@ -233,7 +256,11 @@ Environment="AIRFLOW_HOME=$AIRFLOW_HOME"
 Environment="AIRFLOW__CORE__DAGS_FOLDER=$UBUNTU_HOME/fintech-data-platform/dags"
 Environment="AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://rds_admin:$RDS_PASSWORD@$AURORA_CLUSTER_ENDPOINT:5432/airflow?sslmode=verify-full&sslrootcert=/home/ubuntu/global-bundle.pem"
 Environment="AIRFLOW__API__SECRET_KEY=$API_SECRET_KEY"
-Environment="AIRFLOW__API__JWT_SECRET_KEY=$API_JWT_SECRET_KEY"
+Environment="AIRFLOW__CORE__FERNET_KEY=$FERNET_KEY"
+Environment="AIRFLOW__CORE__INTERNAL_API_SECRET_KEY=$INTERNAL_API_AUTH_KEY"
+Environment="AIRFLOW__API_AUTH__JWT_SECRET=$API_JWT_SECRET_KEY"
+Environment="AIRFLOW__API_AUTH__JWT_ALGORITHM=HS256"
+Environment="AIRFLOW__API_AUTH__ACCESS_TOKEN_EXPIRE_MINUTES=30"
 Environment="AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager"
 ExecStart=/home/ubuntu/.venv/bin/airflow dag-processor
 Restart=always
