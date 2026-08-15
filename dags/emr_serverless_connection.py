@@ -75,6 +75,7 @@ with DAG(
         task_id='create_emr_connection',
         bash_command=f"""
             set -e  # Exit immediately if any command fails
+            export AIRFLOW_HOME=/home/ubuntu/airflow
             
             # Check if connection already exists
             if {AIRFLOW_CMD} connections get '{CONN_ID}' &> /dev/null; then
