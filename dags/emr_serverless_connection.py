@@ -7,6 +7,17 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 import json
 
+# Define the absolute path to the Airflow CLI
+AIRFLOW_CMD = "/home/ubuntu/.venv/bin/airflow"
+
+# Connection details
+CONN_ID = "emr_serverless_default"
+CONN_TYPE = "aws"
+CONN_EXTRA = json.dumps({
+    "region_name": "us-east-1",
+    "role_arn": "arn:aws:iam::891377165210:role/emr-serverless-job-role"
+})
+
 def create_emr_connection():
     """Create EMR Serverless connection in Airflow metadata DB"""
     conn_id = 'emr_serverless_default'
@@ -60,18 +71,26 @@ with DAG(
     tags=['setup', 'emr'],
 ) as dag:
     
-    create_conn = BashOperator(
+    create_emr_connection = BashOperator(
         task_id='create_emr_connection',
         bash_command=f"""
+            set -e  # Exit immediately if any command fails
+            
             # Check if connection already exists
-            if airflow connections get 'emr_serverless_default' &> /dev/null; then
-                echo "ℹ️ Connection 'emr_serverless_default' already exists. Skipping creation."
+            if {AIRFLOW_CMD} connections get '{CONN_ID}' &> /dev/null; then
+                echo "ℹ️ Connection '{CONN_ID}' already exists. Skipping creation."
+                exit 0
+            fi
+            
+            echo "🔄 Connection '{CONN_ID}' not found. Creating it now..."
+            # The main command that creates the connection
+            if {AIRFLOW_CMD} connections add '{CONN_ID}' \
+                --conn-type '{CONN_TYPE}' \
+                --conn-extra '{CONN_EXTRA}'; then
+                echo "✅ EMR Serverless connection '{CONN_ID}' created successfully!"
             else
-                echo "🔄 Connection 'emr_serverless_default' not found. Creating it now..."
-                airflow connections add 'emr_serverless_default' \
-                    --conn-type 'aws' \
-                    --conn-extra '{json.dumps({"region_name": "us-east-1", "role_arn": "arn:aws:iam::891377165210:role/emr-serverless-job-role"})}'
-                echo "✅ EMR Serverless connection 'emr_serverless_default' created successfully!"
+                echo "❌ Failed to create connection '{CONN_ID}'."
+                exit 1
             fi
         """,
     )
