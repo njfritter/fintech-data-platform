@@ -95,4 +95,4 @@ with DAG(
         """,
     )
     
-    create_conn
+    create_emr_connection
