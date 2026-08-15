@@ -1,6 +1,7 @@
 # This DAG creates the connection if it doesn't exist
 from airflow import DAG, settings
 from airflow.models import Connection
+from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
 from datetime import datetime
@@ -59,9 +60,20 @@ with DAG(
     tags=['setup', 'emr'],
 ) as dag:
     
-    create_conn = PythonOperator(
+    create_conn = BashOperator(
         task_id='create_emr_connection',
-        python_callable=create_emr_connection,
+        bash_command=f"""
+            # Check if connection already exists
+            if airflow connections get 'emr_serverless_default' &> /dev/null; then
+                echo "ℹ️ Connection 'emr_serverless_default' already exists. Skipping creation."
+            else
+                echo "🔄 Connection 'emr_serverless_default' not found. Creating it now..."
+                airflow connections add 'emr_serverless_default' \
+                    --conn-type 'aws' \
+                    --conn-extra '{json.dumps({"region_name": "us-east-1", "role_arn": "arn:aws:iam::891377165210:role/emr-serverless-job-role"})}'
+                echo "✅ EMR Serverless connection 'emr_serverless_default' created successfully!"
+            fi
+        """,
     )
     
     create_conn
