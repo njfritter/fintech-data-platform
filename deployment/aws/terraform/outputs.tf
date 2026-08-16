@@ -39,3 +39,7 @@ output "rds_master_password" {
   value     = random_password.rds_master.result
   sensitive = true
 }
+
+output "airflow_db_secret_arn" {
+  value = aws_secretsmanager_secret.airflow_db_conn.arn
+}

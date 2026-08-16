@@ -131,6 +131,20 @@
                 "tag:UntagResources"
             ],
             "Resource": "*"
+        },
+        {
+            "Sid": "SecretsManagerPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:CreateSecret",
+                "secretsmanager:PutSecretValue",
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:TagResource",
+                "secretsmanager:GetResourcePolicy",
+                "secretsmanager:DeleteSecret"
+            ],
+            "Resource": "arn:aws:secretsmanager:us-east-1:891377165210:secret:fintech-data-platform/*"
         }
     ]
 }

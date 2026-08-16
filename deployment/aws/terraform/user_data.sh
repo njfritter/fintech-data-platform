@@ -271,6 +271,7 @@ WantedBy=multi-user.target
 EOF
 
 # Create an admin user (non-interactive)
+log "Creating Airflow admin user..."
 airflow users create \
   --username Admin \
   --password $ADMIN_PASSWORD \
@@ -278,6 +279,12 @@ airflow users create \
   --lastname User \
   --role Admin \
   --email admin@example.com
+
+# Create all the Airflow connections needed for the DAGs
+log "Creating EMR Serverless connection in Airflow..."
+airflow connections add 'emr_serverless_default' \
+    --conn-type 'aws' \
+    --conn-extra '{"region_name": "us-east-1", "role_arn": "arn:aws:iam::891377165210:role/emr-serverless-job-role"}' || true
 
 # Enable the services to start on boot
 sudo systemctl enable airflow-api-server.service airflow-scheduler.service airflow-dag-processor.service

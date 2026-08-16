@@ -99,6 +99,19 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# Fetch the current IP address of the machine running Terraform
+data "http" "my_current_ip" {
+  url = "https://ifconfig.me/ip"
+}
+
+locals {
+  current_ip = trimspace(data.http.my_current_ip.response_body)
+}
+
+locals {
+  admin_cidr_blocks = concat(var.admin_cidr_blocks, ["${local.current_ip}/32"])
+}
+
 # -----------------------------------------------------------------------------
 # Security Groups
 # -----------------------------------------------------------------------------
@@ -127,7 +140,7 @@ resource "aws_security_group" "fintech-data-platform" {
     from_port   = 8793
     to_port     = 8793
     protocol    = "tcp"
-    cidr_blocks = var.admin_cidr_blocks
+    cidr_blocks = local.admin_cidr_blocks
     description = "Airflow UI"
   }
   
@@ -192,6 +205,26 @@ resource "aws_security_group" "fintech-data-platform" {
 }
 
 # -----------------------------------------------------------------------------
+# Secrets Manager
+# -----------------------------------------------------------------------------
+
+# Store the database connection URL in Secrets Manager
+resource "aws_secretsmanager_secret" "airflow_db_conn" {
+  name = "fintech-data-platform/airflow/db-connection"
+  description = "Airflow database connection URL for Fintech Data Platform"
+  recovery_window_in_days = 0  # Enables deletion and recreation on demand
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "airflow_db_conn" {
+  secret_id     = aws_secretsmanager_secret.airflow_db_conn.id
+  secret_string = "postgresql+psycopg2://rds_admin:${random_password.rds_master.result}@${aws_rds_cluster.aurora.endpoint}:5432/airflow"
+}
+
+# -----------------------------------------------------------------------------
 # IAM Roles and Policies
 # -----------------------------------------------------------------------------
 resource "aws_iam_role" "ec2_role" {
@@ -247,6 +280,29 @@ resource "aws_iam_policy" "ec2_s3" {
 resource "aws_iam_role_policy_attachment" "ec2_s3" {
   role       = aws_iam_role.ec2_role.name
   policy_arn = aws_iam_policy.ec2_s3.arn
+}
+
+resource "aws_iam_policy" "secrets_manager_access" {
+  name        = "fintech-data-platform-secrets-manager-access"
+  description = "Allow EC2 instances to read Airflow secrets"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+        Effect   = "Allow"
+        Resource = aws_secretsmanager_secret.airflow_db_conn.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_secrets_manager" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.secrets_manager_access.arn
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_ecr" {

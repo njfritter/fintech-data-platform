@@ -23,7 +23,6 @@ stream_count=1000
 admin_cidr_blocks = [
     "10.0.0.0/8", # Private IP range
     "203.0.113.0/24", # Public IP range
-    "67.164.60.194/32" # REPLACE WITH YOUR HOME IP ADDRESS (use `curl ifconfig.me` in terminal) + `/32`
 ]
 
 # Path to SQL files within project directory
